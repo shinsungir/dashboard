@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>신성대학교 공시 종합 대시보드</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer onload="window.initGsi&&initGsi()"></script>
+<style>
+:root{
+  --bg:#f4f5f8; --card:#ffffff; --ink:#1b2333; --ink2:#4b5563; --ink3:#8a93a3; --line:#e3e6ee; --navy:#1a2744;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#6250d6; --s8:#e34948;
+  --good:#17824a; --bad:#c23a2e; --neu:#6b7280; --warnbg:#fff7e0; --warn:#8a5a00;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{color-scheme:light}
+body{font-family:'Pretendard','Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5}
+button,select,input{font-family:inherit;font-size:14px}
+
+/* 헤더 */
+.hd{background:var(--navy);color:#fff;position:sticky;top:0;z-index:20;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.hd-in{max-width:1320px;margin:0 auto;padding:12px 24px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;margin-right:auto}
+.brand img{width:40px;height:40px;border-radius:9px;background:#fff;object-fit:contain}
+.brand h1{font-size:19px;font-weight:700;letter-spacing:-.2px}
+.brand small{display:block;font-size:12px;color:#aab6d3;font-weight:400}
+.yr{display:flex;align-items:center;gap:8px;font-size:13px;color:#c9d3ea}
+.yr select{background:#fff;color:var(--ink);border:0;border-radius:8px;padding:7px 12px;font-weight:600}
+.tabs{max-width:1320px;margin:0 auto;padding:0 24px 10px;display:flex;gap:6px;flex-wrap:wrap}
+.tab{border:0;background:transparent;color:#c9d3ea;padding:9px 18px;border-radius:9px;cursor:pointer;font-weight:600}
+.tab:hover{background:rgba(255,255,255,.1)}
+.tab.on{background:#fff;color:var(--navy)}
+.tab[hidden]{display:none}
+
+/* 본문 */
+main{max-width:1320px;margin:0 auto;padding:24px 24px 40px}
+.banner{border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.banner.info{background:#e8f0fe;color:#1d3f87}.banner.warn{background:var(--warnbg);color:var(--warn)}.banner.err{background:#fde8e6;color:#8d241b}
+.banner button{margin-left:auto}
+h2.sec{font-size:17px;margin:26px 0 12px;display:flex;align-items:center;gap:10px}
+h2.sec:first-child{margin-top:0}
+h2.sec small{font-weight:400;color:var(--ink3);font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:14px}
+.kpi{background:var(--card);border-radius:14px;padding:16px 18px 14px;border:1px solid var(--line);border-left:6px solid var(--c,var(--s1))}
+.kpi .l{font-size:13.5px;color:var(--ink2);font-weight:600}
+.kpi .v{font-size:30px;font-weight:700;margin-top:6px;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi .v .u{font-size:14px;font-weight:600;color:var(--ink3);margin-left:3px}
+.kpi .v.na{font-size:17px;color:var(--ink3);font-weight:600}
+.kpi .d{font-size:13px;margin-top:8px;font-weight:600;color:var(--neu)}
+.kpi .d.good{color:var(--good)}.kpi .d.bad{color:var(--bad)}
+.kpi .n{font-size:11.5px;color:var(--ink3);margin-top:4px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.card{background:var(--card);border-radius:14px;border:1px solid var(--line);padding:18px 20px}
+.card.wide{grid-column:1/-1}
+.card h3{font-size:15.5px;font-weight:700}
+.card .sub{font-size:12.5px;color:var(--ink3);margin:2px 0 10px}
+.cv{position:relative;height:300px}.cv.tall{height:420px}.cv.short{height:240px}
+.empty{height:100%;display:flex;align-items:center;justify-content:center;color:var(--ink3);font-size:14px;background:repeating-linear-gradient(135deg,#fafbfc,#fafbfc 8px,#f3f4f7 8px,#f3f4f7 16px);border-radius:10px;text-align:center;padding:12px}
+.tw{overflow-x:auto;margin-top:6px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+th{background:#f0f2f7;color:var(--ink2);font-weight:700;padding:9px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:inherit}
+td:first-child{background:#fff;font-weight:600}
+tr.sel td{background:#eef4ff}tr.sel td:first-child{background:#eef4ff}
+td.na{color:#b4bac6}
+.sub-tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
+.sub-tabs button{border:1px solid var(--line);background:#fff;padding:8px 16px;border-radius:999px;cursor:pointer;font-weight:600;color:var(--ink2)}
+.sub-tabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer;color:var(--ink2)}
+.chip.on{background:#e8f0fe;border-color:#9db9ee;color:#1d3f87;font-weight:600}
+.ctl{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.ctl label{font-size:13px;color:var(--ink2);font-weight:600}
+.ctl select{border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:#fff}
+.rk-good{color:var(--good);font-weight:700}.rk-bad{color:var(--bad);font-weight:700}
+.btn{border:0;background:var(--s1);color:#fff;padding:9px 18px;border-radius:9px;cursor:pointer;font-weight:700}
+.btn:hover{filter:brightness(.94)}.btn:disabled{background:#b7bdca;cursor:not-allowed}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn.sm{padding:6px 12px;font-size:13px}
+.drop{border:2px dashed #b7c2dc;border-radius:14px;padding:30px;text-align:center;color:var(--ink2);background:#fafbff;cursor:pointer}
+.drop.over{background:#e8f0fe;border-color:var(--s1)}
+.drop b{font-size:16px;color:var(--ink)}
+.st{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:700}
+.st.ok{background:#e1f5ea;color:#116237}.st.warn{background:var(--warnbg);color:var(--warn)}.st.bad{background:#fde8e6;color:#8d241b}.st.skip{background:#eceef3;color:#5b6475}
+.msg{font-size:12.5px;color:var(--ink2);white-space:normal;text-align:left;max-width:640px;line-height:1.45}
+.msg.e{color:var(--bad)}.msg.w{color:var(--warn)}
+.steps{counter-reset:s;list-style:none;display:grid;gap:8px;font-size:14px}
+.steps li{counter-increment:s;padding-left:34px;position:relative}
+.steps li::before{content:counter(s);position:absolute;left:0;top:0;width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.fm{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end}
+.fm label{display:block;font-size:12.5px;font-weight:600;color:var(--ink2);margin-bottom:4px}
+.fm input,.fm select{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff}
+details{margin-top:10px}summary{cursor:pointer;font-weight:600;color:var(--ink2)}
+footer{max-width:1320px;margin:0 auto;padding:6px 24px 36px;color:var(--ink3);font-size:12.5px;display:flex;gap:14px;flex-wrap:wrap}
+footer a{color:var(--ink3)}
+.leg-note{font-size:12.5px;color:var(--ink3);margin-top:8px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}main{padding:16px 14px 32px}.hd-in,.tabs{padding-left:14px;padding-right:14px}.kpi .v{font-size:26px}}
+</style>
+</head>
+<body>
+<header class="hd">
+  <div class="hd-in">
+    <div class="brand"><img src="data:image/jpeg;base64,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" alt="신성대학교 심볼"><div><h1>신성대학교 공시 종합 대시보드</h1><small id="sub">대학알리미 공시자료 기반</small></div></div>
+    <div class="yr"><label for="yearSel">기준 연도</label><select id="yearSel"></select></div>
+  </div>
+  <nav class="tabs" id="tabs"></nav>
+</header>
+<main id="view"></main>
+<footer><span id="foot">신성대학교 IR센터 · 출처: 대학알리미(www.academyinfo.go.kr) 공시자료</span><span id="upd"></span><a href="#" id="loginLink">IR센터 로그인</a></footer>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   CORE: 대학알리미 엑셀 파서 + 지표 해석기 (브라우저/Node 공용)
+   - 헤더 문구(경로) 기반으로 열을 찾으므로 열 순서가 바뀌어도 동작
+   - 지표(catalog)의 patterns 문법은 make_catalog.py 상단 주석 참고
+   ═══════════════════════════════════════════════════════════ */
+(function (root) {
+  'use strict';
+
+  const DIM_LABELS = ['졸업연도', '학기', '정원구분', '전형명'];   // 연도 외에 행을 구분하는 열(헤더 문구 기준)
+  const SCHOOL_LABELS = ['학교', '학교명'];
+  const SCHOOL_SHEET_MARK = '생성된IR코드';
+
+  function norm(s) {
+    return String(s == null ? '' : s)
+      .replace(/[\s 　]+/g, '')
+      .replace(/[∙•ㆍ・]/g, '·')
+      .replace(/[‘’`´′]/g, "'");
+  }
+
+  function toNum(v) {
+    if (v == null) return null;
+    if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+    const s = String(v).replace(/,/g, '').trim();
+    if (s === '' || s === '-' || s === '–') return null;
+    return /^-?\d+(\.\d+)?$/.test(s) ? Number(s) : NaN;   // NaN = 숫자가 아닌 문자
+  }
+
+  /* ── 패턴 해석 ── */
+  function parsePart(part) {
+    let p = part.trim(), optional = false;
+    if (p[0] === '?') { optional = true; p = p.slice(1); }
+    const i = p.indexOf('::');
+    return { optional, sheet: p.slice(0, i), path: norm(p.slice(i + 2)), raw: p };
+  }
+  function matchPaths(paths, pat) {
+    if (pat.indexOf('*') >= 0) {
+      const re = new RegExp('^' + pat.split('*').map(x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$');
+      return { idx: paths.map((p, i) => re.test(p) ? i : -1).filter(i => i >= 0), ambiguous: false };
+    }
+    const ex = paths.map((p, i) => p === pat ? i : -1).filter(i => i >= 0);
+    if (ex.length) return { idx: ex.slice(0, 1), ambiguous: false };
+    const pre = paths.map((p, i) => p.startsWith(pat) ? i : -1).filter(i => i >= 0);
+    if (pre.length > 1) return { idx: [], ambiguous: true };
+    return { idx: pre, ambiguous: false };
+  }
+
+  /* ── 시트 파싱 ── */
+  function parseSheet(name, aoa, merges, opts) {
+    opts = opts || {};
+    const res = { name, ok: true, errors: [], warnings: [], years: [], cols: [], rows: [], nFacts: 0 };
+    const yearRe = /^\s*(20\d\d)/;
+    const first = aoa.findIndex(r => r && r[0] != null && yearRe.test(String(r[0])));
+    if (first < 0) { res.ok = false; res.errors.push('데이터 행(기준연도 열이 20xx로 시작하는 행)을 찾지 못했습니다.'); return res; }
+
+    const width = Math.max(...aoa.map(r => (r ? r.length : 0)));
+    const grid = [];
+    for (let r = 0; r < first; r++) {
+      const row = [];
+      for (let c = 0; c < width; c++) row.push(norm(aoa[r] ? aoa[r][c] : ''));
+      grid.push(row);
+    }
+    (merges || []).forEach(m => {
+      if (m.s.r >= first) return;
+      const v = norm(aoa[m.s.r] ? aoa[m.s.r][m.s.c] : '');
+      for (let r = m.s.r; r <= Math.min(m.e.r, first - 1); r++)
+        for (let c = m.s.c; c <= m.e.c; c++) if (c < width) grid[r][c] = v;
+    });
+
+    // 학교 열 / 구분(dim) 열 / 측정 열
+    let schoolCol = 5;
+    for (let c = 0; c < Math.min(width, 10); c++) {
+      if (grid.some(row => SCHOOL_LABELS.includes(row[c]))) { schoolCol = c; break; }
+    }
+    const path = [];
+    for (let c = 0; c < width; c++) {
+      const labels = [];
+      grid.forEach(row => { const v = row[c]; if (v && labels[labels.length - 1] !== v) labels.push(v); });
+      path.push(labels.join('>'));
+    }
+    const dimCols = [], measure = [];
+    const seen = {};
+    for (let c = schoolCol + 1; c < width; c++) {
+      if (!path[c]) continue;
+      if (DIM_LABELS.includes(path[c])) { dimCols.push(c); continue; }
+      let p = path[c];
+      if (seen[p]) { seen[p]++; p = p + '#' + seen[p]; } else seen[p] = 1;
+      measure.push({ c, path: p });
+    }
+    const headless = [];
+    for (let c = schoolCol + 1; c < width; c++) if (!path[c]) headless.push(c);
+    res.cols = measure.map(m => m.path);
+
+    // 데이터 행
+    const keySeen = {}, dups = [], yearsSet = new Set(), orphan = [];
+    let textCells = 0;
+    for (let r = first; r < aoa.length; r++) {
+      const row = aoa[r];
+      if (!row || row[0] == null) continue;
+      const m = yearRe.exec(String(row[0]));
+      if (!m) continue;
+      const school = String(row[schoolCol] == null ? '' : row[schoolCol]).trim();
+      if (!school) continue;
+      const year = Number(m[1]);
+      const parts = [];
+      const hb = /(상반기|하반기)/.exec(String(row[0]));
+      if (hb) parts.push(hb[1]);
+      dimCols.forEach(c => parts.push(String(row[c] == null ? '' : row[c]).trim()));
+      const dim = parts.join('|');
+      const key = year + '|' + dim + '|' + school;
+      let replaceAt = -1;
+      if (keySeen[key]) {
+        dups.push(`${school} ${year}${dim ? ' ' + dim : ''} (엑셀 ${keySeen[key].xl}행, ${r + 1}행)`);
+        if (opts.dup === 'first') continue;
+        if (opts.dup === 'last') replaceAt = keySeen[key].idx;
+      }
+      const vals = measure.map(mm => {
+        const n = toNum(row[mm.c]);
+        if (Number.isNaN(n)) { textCells++; return null; }
+        return n;
+      });
+      headless.forEach(c => { if (row[c] != null && String(row[c]).trim() !== '') orphan.push(`${school} ${year} (엑셀 ${r + 1}행)`); });
+      if (vals.every(v => v == null)) continue;
+      if (replaceAt >= 0) { res.rows[replaceAt] = [year, dim, school, vals]; keySeen[key].xl = r + 1; continue; }
+      res.rows.push([year, dim, school, vals]);
+      keySeen[key] = keySeen[key] || { xl: r + 1, idx: res.rows.length - 1 };
+      yearsSet.add(year);
+    }
+    res.years = [...yearsSet].sort();
+    res.nFacts = res.rows.reduce((a, r) => a + r[3].filter(v => v != null).length, 0);
+    res.dupInfo = dups;
+    if (dups.length && (opts.dup === 'first' || opts.dup === 'last')) res.warnings.push('중복 행을 ' + (opts.dup === 'first' ? '먼저 나온 행' : '나중에 나온 행') + '으로 선택했습니다: ' + dups.join(', '));
+    else if (dups.length) { res.ok = false; res.errors.push('같은 학교·연도 행이 중복되었습니다: ' + dups.join(', ') + ' → 엑셀에서 중복 행을 정리한 뒤 다시 올려주세요.'); }
+    const orphanRows = [...new Set(orphan)];
+    if (orphanRows.length) res.warnings.push('헤더가 없는 열에 값이 있는 행: ' + orphanRows.join(', ') + ' (다른 표를 붙여넣은 오류일 수 있으니 원본을 확인하세요. 해당 값은 저장되지 않습니다.)');
+    if (textCells) res.warnings.push(`숫자가 아닌 문자 값 ${textCells}개는 건너뛰었습니다.`);
+    return res;
+  }
+
+  /* ── 지표 매핑 검증 (업로드 시) ── */
+  function checkCatalog(sheetRes, catalog) {
+    const fails = [];
+    catalog.forEach(ind => {
+      String(ind.patterns).split('||').forEach(alt => alt.split('&&').forEach(part => {
+        const p = parsePart(part);
+        if (p.sheet !== sheetRes.name || p.optional) return;
+        const m = matchPaths(sheetRes.cols.map(norm), p.path);
+        if (m.ambiguous) fails.push(`'${ind.name}': 헤더 '${p.path}'가 여러 열과 겹칩니다`);
+        else if (!m.idx.length) fails.push(`'${ind.name}': 헤더 '${p.path}'를 찾지 못했습니다`);
+      }));
+    });
+    return fails;
+  }
+
+  function parseWorkbook(XLSX, wb, catalog, dupModes) {
+    dupModes = dupModes || {};
+    const out = { sheets: [], schools: [] };
+    wb.SheetNames.forEach(name => {
+      const ws = wb.Sheets[name];
+      const ref = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 0, c: 0 } };
+      const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
+      const merges = (ws['!merges'] || []).map(m => ({ s: { r: m.s.r - ref.s.r, c: m.s.c - ref.s.c }, e: { r: m.e.r - ref.s.r, c: m.e.c - ref.s.c } }));
+      if (aoa.length && norm(aoa[0][0]) === SCHOOL_SHEET_MARK) {
+        out.schools = aoa.slice(1).filter(r => r[1]).map(r => ({ code: r[0], name: String(r[1]).trim(), kind: r[2] || '', type: r[3] || '', region: r[4] || '' }));
+        return;
+      }
+      const r = parseSheet(name, aoa, merges, { dup: dupModes[name] });
+      r.src = { aoa, merges };
+      if (r.ok && catalog) {
+        const fails = checkCatalog(r, catalog);
+        if (fails.length) { r.ok = false; r.errors.push('지표 매핑 실패(대학알리미 헤더 문구 변경 의심): ' + fails.join(' / ') + ' → 구글 시트 catalog 탭의 patterns를 새 헤더 문구로 수정한 뒤 다시 올려주세요.'); }
+      }
+      out.sheets.push(r);
+    });
+    const known = new Set(out.schools.map(s => s.name));
+    if (known.size) out.sheets.forEach(s => {
+      const unk = [...new Set(s.rows.map(r => r[2]).filter(n => !known.has(n)))];
+      if (unk.length) {
+        s.rows = s.rows.filter(r => known.has(r[2]));
+        s.nFacts = s.rows.reduce((a, r) => a + r[3].filter(v => v != null).length, 0);
+        s.warnings.push('학교 목록(경쟁대학_코드_및_기본정보)에 없는 학교는 제외했습니다: ' + unk.join(', '));
+      }
+    });
+    return out;
+  }
+
+  /* 파싱 결과 → DB 형태 (체험 모드·테스트용; 실제 저장은 Code.gs가 동일 규칙으로 수행) */
+  function buildDb(parsed, only) {
+    const columns = [], idOf = {}, facts = [];
+    parsed.sheets.forEach(s => {
+      if (!s.ok || (only && !only.includes(s.name))) return;
+      const ids = s.cols.map(p => {
+        const k = s.name + '|' + p;
+        if (!(k in idOf)) { idOf[k] = columns.length + 1; columns.push([columns.length + 1, s.name, p]); }
+        return idOf[k];
+      });
+      s.rows.forEach(r => r[3].forEach((v, i) => { if (v != null) facts.push([r[0], r[1], r[2], ids[i], v]); }));
+    });
+    return { columns, facts, schools: parsed.schools };
+  }
+
+  /* ── 지표 해석기 (DB → 값) ── */
+  function Model(db, catalog, own) {
+    this.own = own;
+    this.catalog = catalog;
+    this.byCode = {};
+    catalog.forEach(c => { this.byCode[c.code] = c; });
+    this.cols = {};                       // sheet -> [{id,path(norm)}]
+    (db.columns || []).forEach(c => { (this.cols[c[1]] = this.cols[c[1]] || []).push({ id: c[0], path: norm(c[2]) }); });
+    this.vals = {};                       // colId -> {year|dim|school: v}
+    this.schools = new Set();
+    (db.facts || []).forEach(f => {
+      const m = this.vals[f[3]] || (this.vals[f[3]] = {});
+      m[f[0] + '|' + f[1] + '|' + f[2]] = f[4];
+      this.schools.add(f[2]);
+    });
+    this._res = {}; this._memo = {}; this._years = {};
+  }
+  Model.prototype.resolve = function (code) {
+    if (this._res[code]) return this._res[code];
+    const ind = this.byCode[code];
+    const alts = [];
+    const issues = [];
+    String(ind.patterns).split('||').forEach(alt => {
+      const ids = [];
+      alt.split('&&').forEach(part => {
+        const p = parsePart(part);
+        const list = this.cols[p.sheet] || [];
+        const m = matchPaths(list.map(x => x.path), p.path);
+        if (m.ambiguous) issues.push(`모호한 헤더: ${p.sheet}::${p.path}`);
+        else if (!m.idx.length) { if (!p.optional) issues.push(`헤더 없음: ${p.sheet}::${p.path}`); }
+        m.idx.forEach(i => ids.push(list[i].id));
+      });
+      alts.push(ids);
+    });
+    return (this._res[code] = { alts, issues });
+  };
+  Model.prototype.get = function (code, year, school) {
+    school = school || this.own;
+    const k = code + '|' + year + '|' + school;
+    if (k in this._memo) return this._memo[k];
+    const ind = this.byCode[code];
+    let out = null;
+    if (ind) {
+      const key = year + '|' + (ind.dim || '') + '|' + school;
+      const { alts } = this.resolve(code);
+      for (const ids of alts) {
+        let s = 0, any = false;
+        ids.forEach(id => { const m = this.vals[id]; if (m && m[key] != null) { s += m[key]; any = true; } });
+        if (any) { out = s; break; }
+      }
+      if (out != null) {
+        out = out / (Number(ind.divisor) || 1);
+        if (ind.per) {
+          const den = this.get(ind.per, year, school);
+          out = (den == null || den === 0) ? null : out / den;
+        }
+        if (out != null) out = out * (Number(ind.mult) || 1);
+      }
+    }
+    return (this._memo[k] = out);
+  };
+  Model.prototype.years = function (code) {
+    if (this._years[code]) return this._years[code];
+    const ind = this.byCode[code]; const ys = new Set();
+    if (ind) this.resolve(code).alts.forEach(ids => ids.forEach(id => {
+      const m = this.vals[id] || {};
+      Object.keys(m).forEach(k => { const p = k.split('|'); if (p[1] === (ind.dim || '')) ys.add(Number(p[0])); });
+    }));
+    return (this._years[code] = [...ys].sort());
+  };
+  Model.prototype.compare = function (code, year, schoolSet) {
+    const list = [...(schoolSet || this.schools)].filter(s => s !== this.own);
+    const vs = list.map(s => ({ s, v: this.get(code, year, s) })).filter(x => x.v != null);
+    const avg = vs.length ? vs.reduce((a, x) => a + x.v, 0) / vs.length : null;
+    const own = this.get(code, year, this.own);
+    let rank = null, total = null;
+    if (own != null) {
+      const ind = this.byCode[code];
+      const all = vs.map(x => x.v).concat([own]);
+      total = all.length;
+      rank = 1 + all.filter(v => ind.lower == 1 ? v < own : v > own).length;
+    }
+    return { own, avg, n: vs.length, rank, total, list: vs };
+  };
+  Model.prototype.problems = function () {
+    const out = [];
+    this.catalog.forEach(ind => { const r = this.resolve(ind.code); if (r.issues.length) out.push({ code: ind.code, name: ind.name, issues: r.issues }); });
+    return out;
+  };
+
+  const API = { buildDb, norm, toNum, parseSheet, parseWorkbook, checkCatalog, matchPaths, parsePart, Model };
+  if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.CORE = API;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* ═════════════════ 설정 (배포 후 여기 2개만 입력) ═════════════════ */
+const CFG = {
+  API_URL:   'https://script.google.com/macros/s/AKfycbxsyRsoaTHtOesljH4wQUMDAWuXNN0V4HO-esOMovEaB06FqSSx83hvI32RG-p6OYiHjQ/exec',   // Apps Script 웹 앱 URL (…/exec). 비워두면 DB 없이 엑셀 미리보기만 가능
+  CLIENT_ID: '408680703760-l9n3pe9caeidtagfo1flojcnd64jsj2l.apps.googleusercontent.com',   // 구글 OAuth 클라이언트 ID (…apps.googleusercontent.com). 업로드 로그인에만 사용
+  OWN: '신성대학교'
+};
+const DEFAULT_CATALOG = [{"code":"new_rate","name":"신입생 충원율","tab":"학생","unit":"%","lower":0,"cmp":"R","patterns":"신입생_충원율::정원내신입생충원율(%)","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"new_cap","name":"입학정원","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"신입생_충원율::입학정원(A)","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"new_quota","name":"모집인원(정원내)","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"신입생_충원율::모집인원>정원내(B)","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"new_apply","name":"지원자(정원내)","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"신입생_충원율::지원자>정원내(C)","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"new_admit","name":"입학자(정원내)","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"신입생_충원율::입학자>정원내(D)>*","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"new_comp","name":"경쟁률","tab":"학생","unit":":1","lower":0,"cmp":"Y","patterns":"신입생_충원율::경쟁률(C/B)","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"stu_rate","name":"재학생 충원율(정원내, 상반기)","tab":"학생","unit":"%","lower":0,"cmp":"R","patterns":"재학생_충원율::정원내재학생충원율(%)","dim":"상반기","divisor":1,"per":"","mult":1,"note":""},{"code":"stu_rate_all","name":"재학생 충원율(전체, 상반기)","tab":"학생","unit":"%","lower":0,"cmp":"Y","patterns":"재학생_충원율::재학생충원율(%)","dim":"상반기","divisor":1,"per":"","mult":1,"note":""},{"code":"stu_n","name":"재학생수(정원내, 상반기)","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"재학생_충원율::재학생>정원내(D)","dim":"상반기","divisor":1,"per":"","mult":1,"note":""},{"code":"stu_n_out","name":"재학생수(정원외, 상반기)","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"재학생_충원율::재학생>정원외","dim":"상반기","divisor":1,"per":"","mult":1,"note":""},{"code":"stu_cap","name":"학생정원","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"재학생_충원율::학생정원(A)","dim":"상반기","divisor":1,"per":"","mult":1,"note":""},{"code":"drop_rate","name":"중도탈락률","tab":"학생","unit":"%","lower":1,"cmp":"R","patterns":"중도_탈락률::중도탈락학생비율(%)","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"drop_new","name":"신입생 중도탈락률","tab":"학생","unit":"%","lower":1,"cmp":"Y","patterns":"중도_탈락률::중도탈락학생(신입생)비율(%)","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"drop_unreg","name":"중도탈락-미등록","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"중도_탈락률::사유별중도탈락학생>미등록","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"drop_noreturn","name":"중도탈락-미복학","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"중도_탈락률::사유별중도탈락학생>미복학","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"drop_quit","name":"중도탈락-자퇴","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"중도_탈락률::사유별중도탈락학생>자퇴","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"drop_etc","name":"중도탈락-기타 사유","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"중도_탈락률::사유별중도탈락학생>학사경고&&중도_탈락률::사유별중도탈락학생>학생활동&&중도_탈락률::사유별중도탈락학생>유급제적&&중도_탈락률::사유별중도탈락학생>재학연한초과&&중도_탈락률::사유별중도탈락학생>기타","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"for_n","name":"외국인 유학생수","tab":"학생","unit":"명","lower":0,"cmp":"Y","patterns":"외국인_학생현황::계(D=A+B+C)","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"for_degree","name":"외국인-학위과정","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"외국인_학생현황::학위과정(전문대학)>소계(A)","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"for_joint","name":"외국인-교육과정공동운영","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"외국인_학생현황::교육과정공동운영생(B)","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"for_train","name":"외국인-연수과정","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"외국인_학생현황::연수과정>소계(C)","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"emp_rate","name":"졸업생 취업률","tab":"학생","unit":"%","lower":0,"cmp":"R","patterns":"졸업생_취업률::취업률(%)","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"keep1","name":"유지취업률 1차","tab":"학생","unit":"%","lower":0,"cmp":"R","patterns":"졸업생_취업률::유지취업률(수시)>1차>계","dim":"","divisor":1,"per":"","mult":1,"note":"기존 대시보드는 \"4차\"로 표기했으나 실제 값은 1차 유지취업률이었음"},{"code":"keep2","name":"유지취업률 2차","tab":"학생","unit":"%","lower":0,"cmp":"","patterns":"졸업생_취업률::유지취업률(수시)>2차>계","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"keep3","name":"유지취업률 3차","tab":"학생","unit":"%","lower":0,"cmp":"","patterns":"졸업생_취업률::유지취업률(수시)>3차>계","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"keep4","name":"유지취업률 4차","tab":"학생","unit":"%","lower":0,"cmp":"Y","patterns":"졸업생_취업률::유지취업률(수시)>4차>계","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"hs_total","name":"신입생 출신고교 총계","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"신입생_출신고교별_현황::총입학자수","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"hs_gen","name":"일반고","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"신입생_출신고교별_현황::출신학교유형별입학자수및비율>일반고>학생수","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"hs_voc","name":"특성화고","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"신입생_출신고교별_현황::출신학교유형별입학자수및비율>특성화고>학생수","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"hs_spec","name":"특수목적고","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"신입생_출신고교별_현황::출신학교유형별입학자수및비율>특수목적고>*>학생수","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"hs_auto","name":"자율고","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"신입생_출신고교별_현황::출신학교유형별입학자수및비율>자율고>*>학생수","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"hs_foreign","name":"외국고등학교","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"신입생_출신고교별_현황::출신학교유형별입학자수및비율>기타>외국고등학교>학생수","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"hs_ged","name":"검정고시","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"신입생_출신고교별_현황::출신학교유형별입학자수및비율>기타>검정고시>학생수","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"hs_etc","name":"그 외 기타","tab":"학생","unit":"명","lower":0,"cmp":"","patterns":"신입생_출신고교별_현황::출신학교유형별입학자수및비율>기타>영재학교>학생수&&신입생_출신고교별_현황::출신학교유형별입학자수및비율>기타>외국인학교>학생수&&신입생_출신고교별_현황::출신학교유형별입학자수및비율>기타>그외기타>학생수","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"fac_sec_stu","name":"전임교원 확보율(재학생 기준)","tab":"교원","unit":"%","lower":0,"cmp":"R","patterns":"전임교원_1인당_학생수_및_전임교원확보율::전임교원확보율>재학생기준","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"fac_sec_cap","name":"전임교원 확보율(학생정원 기준)","tab":"교원","unit":"%","lower":0,"cmp":"Y","patterns":"전임교원_1인당_학생수_및_전임교원확보율::전임교원확보율>학생정원기준","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"fac_n","name":"전임교원수(재학생 기준)","tab":"교원","unit":"명","lower":0,"cmp":"","patterns":"전임교원_1인당_학생수_및_전임교원확보율::전임교원현황>재학생기준전임교원","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"fac_n_cap","name":"전임교원수(학생정원 기준)","tab":"교원","unit":"명","lower":0,"cmp":"","patterns":"전임교원_1인당_학생수_및_전임교원확보율::전임교원현황>학생정원기준전임교원","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"fac_std_stu","name":"교원 법정정원(재학생 기준)","tab":"교원","unit":"명","lower":0,"cmp":"","patterns":"전임교원_1인당_학생수_및_전임교원확보율::교원법정정원>재학생기준","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"spf_stu","name":"전임교원 1인당 학생수(재학생)","tab":"교원","unit":"명/인","lower":1,"cmp":"R","patterns":"전임교원_1인당_학생수_및_전임교원확보율::전임교원1인당학생수>재학생","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"spf_cap","name":"전임교원 1인당 학생수(정원)","tab":"교원","unit":"명/인","lower":1,"cmp":"Y","patterns":"전임교원_1인당_학생수_및_전임교원확보율::전임교원1인당학생수>학생정원","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"ft_prof","name":"전임-교수","tab":"교원","unit":"명","lower":0,"cmp":"","patterns":"전체교원_대비_전임교원현황::전임교원>교수>*","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"ft_assoc","name":"전임-부교수","tab":"교원","unit":"명","lower":0,"cmp":"","patterns":"전체교원_대비_전임교원현황::전임교원>부교수>*","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"ft_asst","name":"전임-조교수","tab":"교원","unit":"명","lower":0,"cmp":"","patterns":"전체교원_대비_전임교원현황::전임교원>조교수>*","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"ft_total","name":"전임교원(전체교원 기준)","tab":"교원","unit":"명","lower":0,"cmp":"","patterns":"전체교원_대비_전임교원현황::전임교원>계>*","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"pt_total","name":"비전임교원","tab":"교원","unit":"명","lower":0,"cmp":"","patterns":"전체교원_대비_전임교원현황::비전임교원>계>*","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"lec_ft1","name":"전임교원 강의담당 비율(1학기)","tab":"교원","unit":"%","lower":0,"cmp":"Y","patterns":"교원_강의담당_비율::전임교원>비율","dim":"1학기","divisor":1,"per":"","mult":1,"note":""},{"code":"lec_ft2","name":"전임교원 강의담당 비율(2학기)","tab":"교원","unit":"%","lower":0,"cmp":"","patterns":"교원_강의담당_비율::전임교원>비율","dim":"2학기","divisor":1,"per":"","mult":1,"note":""},{"code":"land","name":"교지확보율(재학생 기준)","tab":"교원","unit":"%","lower":0,"cmp":"Y","patterns":"2024년이후_교지확보현황::재학생기준_확보율(%)||교지_확보_현황::교지확보율(%)>재학생기준","dim":"","divisor":1,"per":"","mult":1,"note":"2024년부터 기준면적 산식이 달라져 2023년 이전 값과 직접 비교 불가"},{"code":"res_dom","name":"전임교원 1인당 국내논문","tab":"연구","unit":"건","lower":0,"cmp":"R","patterns":"전임교원_연구실적::전임교원1인당논문실적>국내기준>계","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"res_intl","name":"전임교원 1인당 국제논문","tab":"연구","unit":"건","lower":0,"cmp":"Y","patterns":"전임교원_연구실적::전임교원1인당논문실적>국제기준>계","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"res_book","name":"전임교원 1인당 저·역서","tab":"연구","unit":"건","lower":0,"cmp":"Y","patterns":"전임교원_연구실적::전임교원1인당저·역서실적>계","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"rf_fac","name":"전임교원수(연구비 기준)","tab":"_내부","unit":"명","lower":0,"cmp":"","patterns":"연구비_수혜실적::전임교원>*","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"rf_in","name":"전임교원 1인당 연구비(교내)","tab":"연구","unit":"천원","lower":0,"cmp":"","patterns":"연구비_수혜실적::연구비지원>교내>연구비>*","dim":"","divisor":1,"per":"rf_fac","mult":1,"note":""},{"code":"rf_ext","name":"전임교원 1인당 연구비(교외)","tab":"연구","unit":"천원","lower":0,"cmp":"Y","patterns":"연구비_수혜실적::연구비지원>교외>*>연구비>*","dim":"","divisor":1,"per":"rf_fac","mult":1,"note":""},{"code":"cap_proto","name":"캡스톤 지원금-시제(작)품 제작비","tab":"연구","unit":"백만원","lower":0,"cmp":"","patterns":"캡스톤디자인_운영현황::지원금수령총금액(원)>시제(작)품제작비","dim":"","divisor":1000000,"per":"","mult":1,"note":""},{"code":"cap_edu","name":"캡스톤 지원금-교육프로그램 지원비","tab":"연구","unit":"백만원","lower":0,"cmp":"","patterns":"캡스톤디자인_운영현황::지원금수령총금액(원)>교육프로그램지원비","dim":"","divisor":1000000,"per":"","mult":1,"note":""},{"code":"cap_total","name":"캡스톤 지원금 합계","tab":"연구","unit":"백만원","lower":0,"cmp":"Y","patterns":"캡스톤디자인_운영현황::지원금수령총금액(원)>*","dim":"","divisor":1000000,"per":"","mult":1,"note":""},{"code":"cap_stu","name":"캡스톤 이수학생수","tab":"연구","unit":"명","lower":0,"cmp":"","patterns":"캡스톤디자인_운영현황::이수학생수(명)>*","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"inc_tuition","name":"등록금수입(입학금+수업료)","tab":"재정","unit":"억원","lower":0,"cmp":"Y","patterns":"교비회계(통합)::수입구분>운영수입>등록금및수강료수입>등록금수입>*","dim":"","divisor":100000000,"per":"","mult":1,"note":""},{"code":"inc_course","name":"수강료수입","tab":"재정","unit":"억원","lower":0,"cmp":"","patterns":"교비회계(통합)::수입구분>운영수입>등록금및수강료수입>수강료수입","dim":"","divisor":100000000,"per":"","mult":1,"note":""},{"code":"inc_transfer","name":"전입금","tab":"재정","unit":"억원","lower":0,"cmp":"","patterns":"교비회계(통합)::수입구분>운영수입>전입금>*","dim":"","divisor":100000000,"per":"","mult":1,"note":""},{"code":"inc_donation","name":"기부금","tab":"재정","unit":"억원","lower":0,"cmp":"","patterns":"교비회계(통합)::수입구분>운영수입>기부금","dim":"","divisor":100000000,"per":"","mult":1,"note":""},{"code":"inc_gov","name":"국고보조금","tab":"재정","unit":"억원","lower":0,"cmp":"","patterns":"교비회계(통합)::수입구분>운영수입>국고보조금","dim":"","divisor":100000000,"per":"","mult":1,"note":""},{"code":"inc_rnd","name":"산학협력단·학교기업 전입금","tab":"재정","unit":"억원","lower":0,"cmp":"","patterns":"교비회계(통합)::수입구분>운영수입>산학협력단및학교기업전입금","dim":"","divisor":100000000,"per":"","mult":1,"note":""},{"code":"inc_ancil","name":"교육부대수입","tab":"재정","unit":"억원","lower":0,"cmp":"","patterns":"교비회계(통합)::수입구분>운영수입>교육부대수입","dim":"","divisor":100000000,"per":"","mult":1,"note":"기존 대시보드의 \"교육외수입\" 값은 실제로는 교육부대수입이었음"},{"code":"inc_other","name":"교육외수입","tab":"재정","unit":"억원","lower":0,"cmp":"","patterns":"교비회계(통합)::수입구분>운영수입>교육외수입","dim":"","divisor":100000000,"per":"","mult":1,"note":""},{"code":"inc_total","name":"운영수입 계","tab":"재정","unit":"억원","lower":0,"cmp":"","patterns":"교비회계(통합)::수입구분>운영수입>계","dim":"","divisor":100000000,"per":"","mult":1,"note":""},{"code":"exp_pay","name":"보수","tab":"재정","unit":"억원","lower":2,"cmp":"Y","patterns":"교비회계(통합)::지출구분>운영지출>보수","dim":"","divisor":100000000,"per":"","mult":1,"note":""},{"code":"exp_admin","name":"관리운영비","tab":"재정","unit":"억원","lower":2,"cmp":"","patterns":"교비회계(통합)::지출구분>운영지출>관리운영비>*","dim":"","divisor":100000000,"per":"","mult":1,"note":""},{"code":"exp_res","name":"연구학생경비","tab":"재정","unit":"억원","lower":2,"cmp":"","patterns":"교비회계(통합)::지출구분>운영지출>연구학생경비","dim":"","divisor":100000000,"per":"","mult":1,"note":""},{"code":"exp_nonedu","name":"교육외비용","tab":"재정","unit":"억원","lower":2,"cmp":"","patterns":"교비회계(통합)::지출구분>운영지출>교육외비용","dim":"","divisor":100000000,"per":"","mult":1,"note":""},{"code":"exp_etc","name":"전출금·예비비","tab":"재정","unit":"억원","lower":2,"cmp":"","patterns":"교비회계(통합)::지출구분>운영지출>전출금&&교비회계(통합)::지출구분>운영지출>(예비비)","dim":"","divisor":100000000,"per":"","mult":1,"note":""},{"code":"exp_total","name":"운영지출 계","tab":"재정","unit":"억원","lower":2,"cmp":"","patterns":"교비회계(통합)::지출구분>운영지출>계","dim":"","divisor":100000000,"per":"","mult":1,"note":""},{"code":"dep_tuition","name":"등록금 의존율","tab":"재정","unit":"%","lower":2,"cmp":"Y","patterns":"교비회계(통합)::수입구분>운영수입>등록금및수강료수입>등록금수입>*","dim":"","divisor":1,"per":"inc_total_raw","mult":100,"note":"등록금수입(입학금+수업료) ÷ 운영수입 계 × 100"},{"code":"inc_total_raw","name":"운영수입 계(원)","tab":"_내부","unit":"원","lower":0,"cmp":"","patterns":"교비회계(통합)::수입구분>운영수입>계","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"pay_ratio","name":"인건비(보수) 비율","tab":"재정","unit":"%","lower":2,"cmp":"Y","patterns":"교비회계(통합)::지출구분>운영지출>보수","dim":"","divisor":1,"per":"exp_total_raw","mult":100,"note":"보수 ÷ 운영지출 계 × 100"},{"code":"exp_total_raw","name":"운영지출 계(원)","tab":"_내부","unit":"원","lower":0,"cmp":"","patterns":"교비회계(통합)::지출구분>운영지출>계","dim":"","divisor":1,"per":"","mult":1,"note":""},{"code":"sch_total","name":"장학금 총계","tab":"재정","unit":"억원","lower":0,"cmp":"","patterns":"장학금_수혜_현황::장학금현황>총계(B)","dim":"","divisor":100000000,"per":"","mult":1,"note":""},{"code":"sch_ext","name":"교외 장학금","tab":"재정","unit":"억원","lower":0,"cmp":"","patterns":"장학금_수혜_현황::장학금현황>교외>소계","dim":"","divisor":100000000,"per":"","mult":1,"note":""},{"code":"sch_int","name":"교내 장학금","tab":"재정","unit":"억원","lower":0,"cmp":"","patterns":"장학금_수혜_현황::장학금현황>교내(C포함)>소계","dim":"","divisor":100000000,"per":"","mult":1,"note":""},{"code":"sch_pp","name":"재학생 1인당 장학금","tab":"재정","unit":"만원","lower":0,"cmp":"Y","patterns":"장학금_수혜_현황::재학생1인당장학금","dim":"","divisor":10000,"per":"","mult":1,"note":""},{"code":"tu_avg","name":"평균 등록금","tab":"재정","unit":"만원","lower":0,"cmp":"Y","patterns":"등록금_현황::등록금(D=B)","dim":"","divisor":10000,"per":"","mult":1,"note":""},{"code":"tu_hum","name":"등록금-인문사회","tab":"재정","unit":"만원","lower":0,"cmp":"","patterns":"등록금_현황::인문사회","dim":"","divisor":10000,"per":"","mult":1,"note":""},{"code":"tu_sci","name":"등록금-자연과학","tab":"재정","unit":"만원","lower":0,"cmp":"","patterns":"등록금_현황::자연과학","dim":"","divisor":10000,"per":"","mult":1,"note":""},{"code":"tu_art","name":"등록금-예체능","tab":"재정","unit":"만원","lower":0,"cmp":"","patterns":"등록금_현황::예체능","dim":"","divisor":10000,"per":"","mult":1,"note":""},{"code":"tu_eng","name":"등록금-공학","tab":"재정","unit":"만원","lower":0,"cmp":"","patterns":"등록금_현황::공학","dim":"","divisor":10000,"per":"","mult":1,"note":""}];
+
+/* ═════════════════ 공통 유틸 ═════════════════ */
+const COLORS = ['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#008300','#6250d6','#e34948'];
+const GRAY = '#8b8f98';
+const $ = (s, r) => (r || document).querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const S = { base: {columns:[],facts:[],schools:[]}, db: null, catalog: DEFAULT_CATALOG, model: null, year: null, tab: '종합', sub: '수입',
+            cmpSet: new Set(), cmpCode: 'new_rate', auth: {token:null,email:'',admin:false}, preview: false, log: [], updated: '', loadErr: '', loading: true };
+let charts = {};
+const DEC = {'%':1,'명':0,'명/인':2,'건':4,'억원':2,'만원':1,'천원':1,'백만원':1,'원':0,':1':1};
+function fmt(v, unit) {
+  if (v == null || Number.isNaN(v)) return '—';
+  const d = unit in DEC ? DEC[unit] : 1;
+  return Number(v).toLocaleString('ko-KR', {minimumFractionDigits: d, maximumFractionDigits: d});
+}
+const ind = c => S.model.byCode[c] || {code:c, name:c, unit:'', lower:0};
+const val = (c, y, s) => S.model.get(c, y == null ? S.year : y, s);
+const avg = (c, y) => S.model.compare(c, y, S.cmpSet).avg;
+function setDb(db) {
+  S.db = db;
+  S.model = new CORE.Model(db, S.catalog, CFG.OWN);
+  const all = schoolNames();
+  S.cmpSet = new Set(all.filter(s => s !== CFG.OWN));
+  const ys = allYears();
+  if (!ys.length) { S.year = null; return; }
+  if (!S.year || !ys.includes(S.year)) {
+    const core = ['stu_n','new_rate','emp_rate','fac_sec_stu','spf_stu','drop_rate','for_n','res_dom'];
+    const need = Math.ceil(core.length / 2);
+    const good = ys.filter(y => core.filter(c => val(c, y) != null).length >= need);
+    S.year = good.length ? good[good.length - 1] : ys[ys.length - 1];
+  }
+}
+function schoolNames() { return (S.db.schools && S.db.schools.length) ? S.db.schools.map(s => s.name) : [...S.model.schools]; }
+function allYears() {
+  if (!S.model) return [];
+  const set = new Set();
+  S.catalog.filter(c => c.tab && c.tab[0] !== '_').forEach(c => S.model.years(c.code).forEach(y => set.add(y)));
+  return [...set].sort();
+}
+
+/* ═════════════════ 차트 ═════════════════ */
+Chart.defaults.font.family = "Pretendard,'Malgun Gothic','Apple SD Gothic Neo',sans-serif";
+Chart.defaults.font.size = 12.5;
+Chart.defaults.color = '#4b5563';
+function killCharts() { Object.values(charts).forEach(c => c.destroy()); charts = {}; }
+function yearsWith(fns) {
+  const ys = allYears(), ok = ys.filter(y => fns.some(f => f(y) != null));
+  if (!ok.length) return null;
+  return ys.filter(y => y >= ok[0] && y <= ok[ok.length - 1]);
+}
+function emptyCv(id, msg) {
+  const el = document.getElementById(id); if (!el) return;
+  el.parentElement.innerHTML = `<div class="empty">${msg || '표시할 자료가 없습니다.<br>(해당 연도의 공시자료가 아직 DB에 없습니다)'}</div>`;
+}
+const tipUnit = (unit) => ({callbacks: {label: c => { const u = c.dataset.unit || unit, v = c.chart.options.indexAxis === 'y' ? c.parsed.x : c.parsed.y; return ` ${c.dataset.label}: ${fmt(v, u)}${u === '%' ? '%' : u ? ' ' + u : ''}`; }}});
+function yAxis(unit, o) { return Object.assign({grid:{color:'#edf0f5'}, border:{display:false}, title:{display:!!unit, text:unit, color:'#8a93a3'}, ticks:{callback: v => v.toLocaleString('ko-KR')}}, o || {}); }
+function drawLine(id, series, unit, o) {
+  o = o || {};
+  const ys = yearsWith(series.map(s => s.fn)); if (!ys) return emptyCv(id);
+  charts[id] = new Chart(document.getElementById(id), {type:'line',
+    data:{labels: ys.map(y => y + '년'), datasets: series.map(s => ({label:s.label, data: ys.map(y => s.fn(y)), borderColor:s.color, backgroundColor:s.color, borderDash:s.dash || [], borderWidth:s.dash ? 1.8 : 2.6, pointRadius:s.dash ? 3 : 4.5, pointHoverRadius:7, pointBorderColor:'#fff', pointBorderWidth:1.5, tension:0, spanGaps:false, unit:s.unit || unit}))},
+    options:{responsive:true, maintainAspectRatio:false, interaction:{mode:'index', intersect:false},
+      plugins:{legend:{position:'bottom', labels:{usePointStyle:true, boxWidth:9, padding:14}}, tooltip: tipUnit(unit)},
+      scales:{x:{grid:{display:false}}, y: yAxis(unit, o.y)}}});
+}
+function drawBar(id, series, unit, o) {
+  o = o || {};
+  const ys = yearsWith(series.map(s => s.fn)); if (!ys) return emptyCv(id);
+  let data = series.map(s => ys.map(y => s.fn(y)));
+  if (o.pct) { const tot = ys.map((_, i) => data.reduce((a, d) => a + (d[i] || 0), 0)); data = data.map(d => d.map((v, i) => v == null || !tot[i] ? null : v / tot[i] * 100)); unit = '%'; }
+  charts[id] = new Chart(document.getElementById(id), {type:'bar',
+    data:{labels: ys.map(y => y + '년'), datasets: series.map((s, i) => ({label:s.label, data:data[i], backgroundColor:s.color, borderColor:'#fff', borderWidth:o.stacked ? 2 : 0, borderRadius:o.stacked ? 0 : 4, borderSkipped:false, maxBarThickness:o.stacked ? 64 : 38, unit}))},
+    options:{responsive:true, maintainAspectRatio:false, interaction:{mode:'index', intersect:false},
+      plugins:{legend:{position:'bottom', labels:{usePointStyle:true, boxWidth:9, padding:14}}, tooltip: tipUnit(unit)},
+      scales:{x:{stacked:!!o.stacked, grid:{display:false}}, y: yAxis(unit, Object.assign({stacked:!!o.stacked, beginAtZero:true}, o.pct ? {max:100} : {}))}}});
+}
+function drawDonut(id, items, unit) {
+  const its = items.filter(i => i.v != null && i.v > 0);
+  if (!its.length) return emptyCv(id);
+  const tot = its.reduce((a, i) => a + i.v, 0);
+  charts[id] = new Chart(document.getElementById(id), {type:'doughnut',
+    data:{labels: its.map(i => i.label), datasets:[{data: its.map(i => i.v), backgroundColor: its.map(i => i.color), borderColor:'#fff', borderWidth:3}]},
+    options:{responsive:true, maintainAspectRatio:false, cutout:'58%',
+      plugins:{legend:{position:'right', labels:{usePointStyle:true, boxWidth:9, padding:12}},
+        tooltip:{callbacks:{label: c => ` ${c.label}: ${fmt(c.parsed, unit)} ${unit} (${(c.parsed / tot * 100).toFixed(1)}%)`}}}}});
+}
+
+/* ═════════════════ 화면 조각 ═════════════════ */
+function prevYear(code, y) { const ys = S.model.years(code).filter(v => v < y && val(code, v) != null); return ys.length ? ys[ys.length - 1] : null; }
+function kpi(code, color, label) {
+  const i = ind(code), v = val(code), c = color || 'var(--s1)';
+  const name = esc(label || i.name);
+  if (v == null) return `<div class="kpi" style="--c:${c}"><div class="l">${name}</div><div class="v na">자료없음</div><div class="n">${S.year}년 자료가 DB에 없습니다</div></div>`;
+  let d = '', cls = '';
+  const py = prevYear(code, S.year);
+  if (py != null) {
+    const pv = val(code, py), diff = v - pv;
+    const pct = pv ? diff / Math.abs(pv) * 100 : null;
+    const sign = diff > 0 ? '▲' : diff < 0 ? '▼' : '–';
+    const txt = i.unit === '%' ? `${fmt(Math.abs(diff), '%')}%p` : `${fmt(Math.abs(diff), i.unit)}${pct != null && Math.abs(diff) > 0 ? ` (${Math.abs(pct).toFixed(1)}%)` : ''}`;
+    if (Number(i.lower) !== 2 && diff !== 0) cls = (diff > 0) === (Number(i.lower) !== 1) ? 'good' : 'bad';
+    d = `${sign} ${txt} <span style="font-weight:500;color:var(--ink3)">vs ${py}년</span>`;
+  } else d = '<span style="font-weight:500;color:var(--ink3)">비교할 이전 연도 자료 없음</span>';
+  return `<div class="kpi" style="--c:${c}"><div class="l">${name}</div><div class="v">${fmt(v, i.unit)}<span class="u">${esc(i.unit)}</span></div><div class="d ${cls}">${d}</div>${i.note ? `<div class="n">※ ${esc(i.note)}</div>` : ''}</div>`;
+}
+function kpis(list) { (S._kc = S._kc || []).push(...list.map(x => x[0])); return `<div class="kpis">${list.map((x, i) => kpi(x[0], COLORS[i % 8], x[1])).join('')}</div>`; }
+function card(id, title, sub, o) { o = o || {}; return `<section class="card ${o.wide ? 'wide' : ''}"><h3>${esc(title)}</h3><p class="sub">${esc(sub || '')}</p><div class="cv ${o.h || ''}"><canvas id="${id}"></canvas></div>${o.note ? `<p class="leg-note">${o.note}</p>` : ''}</section>`;
+}
+function yearTable(title, cols) {
+  const ys = (yearsWith(cols.map(c => y => val(c[0], y))) || []).slice().reverse();
+  if (!ys.length) return '';
+  const head = cols.map(c => `<th>${esc(c[1] || ind(c[0]).name)}<br><span style="font-weight:400;color:var(--ink3)">${esc(ind(c[0]).unit)}</span></th>`).join('');
+  const rows = ys.map(y => `<tr class="${y === S.year ? 'sel' : ''}"><td>${y}년</td>${cols.map(c => { const v = val(c[0], y); return v == null ? '<td class="na">—</td>' : `<td>${fmt(v, ind(c[0]).unit)}</td>`; }).join('')}</tr>`).join('');
+  return `<section class="card wide" style="margin-top:16px"><h3>${esc(title)}</h3><p class="sub">선택한 기준 연도 행이 강조됩니다. — 는 해당 연도 자료 없음 (다른 연도 값으로 대체하지 않음)</p><div class="tw"><table><thead><tr><th>연도</th>${head}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
+}
+const L = (c, label, color, o) => Object.assign({label: label || ind(c).name, fn: y => val(c, y), color}, o);
+const A = (c, label, color) => ({label: label || ind(c).name + ' (비교대학 평균)', fn: y => avg(c, y), color, dash: [6, 4]});
+
+/* ═════════════════ 탭별 화면 ═════════════════ */
+const VIEWS = {};
+VIEWS['종합'] = () => {
+  const post = [];
+  const html = `<h2 class="sec">핵심 지표 <small>${S.year}년 기준 · 전년 대비</small></h2>` +
+    kpis([['stu_n','재학생 수 (정원내, 상반기)'],['new_rate'],['stu_rate'],['drop_rate'],['emp_rate'],['fac_sec_stu'],['spf_stu'],['for_n']]) +
+    `<h2 class="sec">추이 <small>점선은 비교대학 평균 (선택된 학교 기준)</small></h2><div class="grid2">` +
+    card('g1','충원율 추이','신입생 충원율·재학생 충원율 (%)') + card('g2','취업률 추이','졸업생 취업률 (%)') +
+    card('g3','전임교원 확보율','재학생 기준 (%)') + card('g4','중도탈락률','낮을수록 좋음 (%)') + `</div>` +
+    yearTable('연도별 주요 지표 요약', [['stu_n'],['new_rate'],['stu_rate'],['emp_rate'],['drop_rate'],['fac_sec_stu'],['spf_stu'],['res_dom'],['inc_tuition']]);
+  post.push(() => {
+    drawLine('g1', [L('new_rate', '신입생 충원율', COLORS[0]), L('stu_rate', '재학생 충원율(정원내)', COLORS[1]), A('new_rate', '신입생 충원율 · 평균', COLORS[0]), A('stu_rate', '재학생 충원율 · 평균', COLORS[1])], '%');
+    drawLine('g2', [L('emp_rate', '본교 취업률', COLORS[0]), A('emp_rate', '비교대학 평균', GRAY)], '%');
+    drawLine('g3', [L('fac_sec_stu', '본교', COLORS[0]), A('fac_sec_stu', '비교대학 평균', GRAY)], '%');
+    drawLine('g4', [L('drop_rate', '본교', COLORS[0]), A('drop_rate', '비교대학 평균', GRAY)], '%');
+  });
+  return {html, post};
+};
+VIEWS['학생'] = () => {
+  const html = `<h2 class="sec">학생 지표 <small>${S.year}년 기준</small></h2>` +
+    kpis([['new_rate'],['new_comp'],['stu_rate'],['drop_rate'],['drop_new'],['for_n'],['emp_rate'],['keep1','유지취업률 1차']]) +
+    `<h2 class="sec">추이</h2><div class="grid2">` +
+    card('s1','충원율 추이','신입생·재학생(정원내) 충원율 (%)') + card('s2','재학생 수','정원내·정원외 (명, 상반기)') +
+    card('s3','취업률 추이','본교와 비교대학 평균 (%)') + card('s4','유지취업률','졸업 후 차수별 (%) — 차수가 늘수록 낮아지는 것이 일반적') +
+    card('s5','중도탈락률','전체·신입생 (%) — 낮을수록 좋음') + card('s6','중도탈락 사유','사유별 인원 (명)') +
+    card('s7','외국인 유학생','과정별 인원 (명)') + card('s8','신입생 출신고교 유형','유형별 구성비 (%)') + `</div>` +
+    yearTable('연도별 학생 지표 요약', [['new_rate'],['new_comp'],['stu_rate'],['stu_n'],['drop_rate'],['drop_new'],['for_n'],['emp_rate'],['keep1'],['keep4']]);
+  const post = [() => {
+    drawLine('s1', [L('new_rate', '신입생 충원율', COLORS[0]), L('stu_rate', '재학생 충원율(정원내)', COLORS[1]), A('new_rate', '신입생 · 평균', COLORS[0]), A('stu_rate', '재학생 · 평균', COLORS[1])], '%');
+    drawBar('s2', [L('stu_n', '정원내', COLORS[0]), L('stu_n_out', '정원외', COLORS[2])], '명', {stacked: true});
+    drawLine('s3', [L('emp_rate', '본교', COLORS[0]), A('emp_rate', '비교대학 평균', GRAY)], '%');
+    drawLine('s4', [L('keep1', '1차', COLORS[0]), L('keep2', '2차', COLORS[1]), L('keep3', '3차', COLORS[2]), L('keep4', '4차', COLORS[3])], '%');
+    drawLine('s5', [L('drop_rate', '전체', COLORS[0]), L('drop_new', '신입생', COLORS[1]), A('drop_rate', '전체 · 평균', COLORS[0]), A('drop_new', '신입생 · 평균', COLORS[1])], '%');
+    drawBar('s6', [L('drop_unreg', '미등록', COLORS[0]), L('drop_noreturn', '미복학', COLORS[1]), L('drop_quit', '자퇴', COLORS[2]), L('drop_etc', '기타 사유', COLORS[3])], '명', {stacked: true});
+    drawBar('s7', [L('for_degree', '학위과정', COLORS[0]), L('for_joint', '교육과정 공동운영', COLORS[2]), L('for_train', '연수과정', COLORS[3])], '명', {stacked: true});
+    drawBar('s8', [L('hs_gen', '일반고', COLORS[0]), L('hs_voc', '특성화고', COLORS[1]), L('hs_spec', '특수목적고', COLORS[2]), L('hs_auto', '자율고', COLORS[3]), L('hs_foreign', '외국고등학교', COLORS[4]), L('hs_ged', '검정고시', COLORS[6]), L('hs_etc', '그 외 기타', GRAY)], '명', {stacked: true, pct: true});
+  }];
+  return {html, post};
+};
+VIEWS['교원'] = () => {
+  const html = `<h2 class="sec">교원·교육여건 지표 <small>${S.year}년 기준</small></h2>` +
+    kpis([['fac_sec_stu'],['fac_sec_cap'],['fac_n','전임교원 수 (재학생 기준)'],['spf_stu'],['land'],['lec_ft1'],['ft_total'],['pt_total']]) +
+    `<h2 class="sec">추이</h2><div class="grid2">` +
+    card('f1','전임교원 확보율','재학생 기준·학생정원 기준 (%)') + card('f2','전임교원 1인당 학생 수','재학생 기준 (명) — 낮을수록 좋음') +
+    card('f3','전임교원 수와 법정정원','재학생 기준 (명)') + card('f4','교원 구성','전임(직급별)·비전임 (명)') +
+    card('f5','전임교원 강의담당 비율','학기별 (%)') + card('f6','교지확보율','재학생 기준 (%)', {note: '※ 2024년부터 기준면적 산식이 달라져 2023년 이전 값과 직접 비교할 수 없습니다.'}) + `</div>` +
+    yearTable('연도별 교원 지표 요약', [['fac_sec_stu'],['fac_sec_cap'],['fac_n'],['fac_std_stu'],['spf_stu'],['spf_cap'],['lec_ft1'],['lec_ft2'],['land']]);
+  const post = [() => {
+    drawLine('f1', [L('fac_sec_stu', '재학생 기준', COLORS[0]), L('fac_sec_cap', '학생정원 기준', COLORS[1]), A('fac_sec_stu', '재학생 기준 · 평균', COLORS[0]), A('fac_sec_cap', '정원 기준 · 평균', COLORS[1])], '%');
+    drawLine('f2', [L('spf_stu', '본교', COLORS[0]), A('spf_stu', '비교대학 평균', GRAY)], '명');
+    drawBar('f3', [L('fac_n', '전임교원 수', COLORS[0]), L('fac_std_stu', '법정정원', '#b9c9e6')], '명');
+    drawBar('f4', [L('ft_prof', '교수', COLORS[0]), L('ft_assoc', '부교수', COLORS[2]), L('ft_asst', '조교수', COLORS[3]), L('pt_total', '비전임', GRAY)], '명', {stacked: true});
+    drawLine('f5', [L('lec_ft1', '1학기', COLORS[0]), L('lec_ft2', '2학기', COLORS[1]), A('lec_ft1', '1학기 · 평균', COLORS[0])], '%');
+    drawLine('f6', [L('land', '본교', COLORS[0]), A('land', '비교대학 평균', GRAY)], '%');
+  }];
+  return {html, post};
+};
+VIEWS['연구'] = () => {
+  const html = `<h2 class="sec">연구·산학 지표 <small>${S.year}년 기준</small></h2>` +
+    kpis([['res_dom','국내논문 (전임 1인당)'],['res_intl','국제논문 (전임 1인당)'],['res_book','저·역서 (전임 1인당)'],['rf_in','연구비-교내 (전임 1인당)'],['rf_ext','연구비-교외 (전임 1인당)'],['cap_total','캡스톤 지원금'],['cap_stu']]) +
+    `<h2 class="sec">추이</h2><div class="grid2">` +
+    card('r1','전임교원 1인당 연구실적','논문·저역서 (건)') + card('r2','전임교원 1인당 연구비','교내+교외 (천원)') +
+    card('r3','캡스톤디자인 지원금','시제품 제작비·교육프로그램 지원비 (백만원)') + card('r4','캡스톤디자인 이수 학생 수','명') + `</div>` +
+    yearTable('연도별 연구 지표 요약', [['res_dom'],['res_intl'],['res_book'],['rf_in'],['rf_ext'],['cap_total'],['cap_stu']]);
+  const post = [() => {
+    drawBar('r1', [L('res_dom', '국내논문', COLORS[0]), L('res_intl', '국제논문', COLORS[1]), L('res_book', '저·역서', COLORS[2])], '건');
+    drawBar('r2', [L('rf_in', '교내', COLORS[2]), L('rf_ext', '교외', COLORS[0])], '천원', {stacked: true});
+    drawBar('r3', [L('cap_proto', '시제(작)품 제작비', COLORS[0], {fn: y => { const v = val('cap_proto', y); return v; }}), L('cap_edu', '교육프로그램 지원비', COLORS[3])], '백만원', {stacked: true});
+    drawBar('r4', [L('cap_stu', '이수 학생 수', COLORS[0])], '명');
+  }];
+  return {html, post};
+};
+const INC = () => [['inc_tuition','등록금(입학금+수업료)',COLORS[0]],['inc_course','수강료',COLORS[2]],['inc_transfer','전입금',COLORS[1]],['inc_donation','기부금',COLORS[3]],['inc_gov','국고보조금',COLORS[6]],['inc_ancil','교육부대수입',COLORS[4]]];
+const sumFn = codes => y => { let s = 0, any = false; codes.forEach(c => { const v = val(c, y); if (v != null) { s += v; any = true; } }); return any ? s : null; };
+VIEWS['재정'] = () => {
+  const subs = ['수입','지출','장학금·등록금'];
+  let body = '', post = [];
+  if (S.sub === '수입') {
+    body = `<h2 class="sec">교비회계 수입 <small>${S.year}년 기준 (억원)</small></h2>` +
+      kpis([['inc_tuition'],['inc_transfer'],['inc_gov'],['inc_donation'],['inc_total'],['dep_tuition']]) +
+      `<h2 class="sec">구성과 추이</h2><div class="grid2">` + card('i1','수입 항목별 추이','운영수입 구성 (억원)') + card('i2', S.year + '년 수입 구성', '운영수입 계 대비 비중') + `</div>` +
+      yearTable('연도별 수입 요약', [['inc_tuition'],['inc_course'],['inc_transfer'],['inc_donation'],['inc_gov'],['inc_rnd'],['inc_ancil'],['inc_other'],['inc_total'],['dep_tuition']]);
+    post = [() => {
+      const items = INC().map(x => L(x[0], x[1], x[2]));
+      items.push({label:'기타(산학협력단 전입금·교육외수입)', fn: sumFn(['inc_rnd','inc_other']), color: GRAY});
+      drawBar('i1', items, '억원', {stacked: true});
+      drawDonut('i2', items.map(i => ({label: i.label, v: i.fn(S.year), color: i.color})), '억원');
+    }];
+  } else if (S.sub === '지출') {
+    body = `<h2 class="sec">교비회계 지출 <small>${S.year}년 기준 (억원)</small></h2>` +
+      kpis([['exp_pay'],['exp_admin'],['exp_res'],['exp_nonedu'],['exp_total'],['pay_ratio']]) +
+      `<h2 class="sec">구성과 추이</h2><div class="grid2">` + card('e1','지출 항목별 추이','운영지출 구성 (억원)') + card('e2', S.year + '년 지출 구성', '운영지출 계 대비 비중') + `</div>` +
+      yearTable('연도별 지출 요약', [['exp_pay'],['exp_admin'],['exp_res'],['exp_nonedu'],['exp_etc'],['exp_total'],['pay_ratio']]);
+    post = [() => {
+      const items = [L('exp_pay', '보수', COLORS[0]), L('exp_admin', '관리운영비', COLORS[1]), L('exp_res', '연구학생경비', COLORS[2]), L('exp_nonedu', '교육외비용', COLORS[3]), L('exp_etc', '전출금·예비비', GRAY)];
+      drawBar('e1', items, '억원', {stacked: true});
+      drawDonut('e2', items.map(i => ({label: i.label, v: i.fn(S.year), color: i.color})), '억원');
+    }];
+  } else {
+    body = `<h2 class="sec">장학금·등록금 <small>${S.year}년 기준</small></h2>` +
+      kpis([['sch_total'],['sch_pp'],['sch_ext'],['sch_int'],['tu_avg']]) +
+      `<h2 class="sec">추이</h2><div class="grid2">` + card('t1','장학금 규모','교외·교내 (억원)') + card('t2','재학생 1인당 장학금','만원') +
+      card('t3','평균 등록금','본교와 비교대학 평균 (만원)') + card('t4', S.year + '년 계열별 등록금', '만원') + `</div>` +
+      yearTable('연도별 장학금·등록금 요약', [['sch_total'],['sch_ext'],['sch_int'],['sch_pp'],['tu_avg'],['tu_hum'],['tu_sci'],['tu_art'],['tu_eng']]);
+    post = [() => {
+      drawBar('t1', [L('sch_ext', '교외 장학금', COLORS[0]), L('sch_int', '교내 장학금', COLORS[2])], '억원', {stacked: true});
+      drawLine('t2', [L('sch_pp', '본교', COLORS[0]), A('sch_pp', '비교대학 평균', GRAY)], '만원');
+      drawLine('t3', [L('tu_avg', '본교', COLORS[0]), A('tu_avg', '비교대학 평균', GRAY)], '만원');
+      const cats = [['tu_hum','인문사회'],['tu_sci','자연과학'],['tu_art','예체능'],['tu_eng','공학']].filter(c => val(c[0]) != null && val(c[0]) > 0);
+      if (!cats.length) return emptyCv('t4');
+      charts.t4 = new Chart(document.getElementById('t4'), {type:'bar', data:{labels: cats.map(c => c[1]), datasets:[{label:'본교', data: cats.map(c => val(c[0])), backgroundColor: COLORS[0], borderRadius:4, maxBarThickness:46, unit:'만원'}, {label:'비교대학 평균', data: cats.map(c => avg(c[0], S.year)), backgroundColor:'#c9ccd4', borderRadius:4, maxBarThickness:46, unit:'만원'}]},
+        options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{usePointStyle:true, boxWidth:9}}, tooltip: tipUnit('만원')}, scales:{x:{grid:{display:false}}, y: yAxis('만원', {beginAtZero:true})}}});
+    }];
+  }
+  const html = `<div class="sub-tabs">${subs.map(s => `<button class="${s === S.sub ? 'on' : ''}" data-sub="${s}">${s}</button>`).join('')}</div>` + body;
+  return {html, post};
+};
+
+/* ── 경쟁대학 비교 ── */
+const dtxt = (d, u) => { const t = fmt(Math.abs(d), u); return /^[0.,]*$/.test(t) ? t : (d > 0 ? '+' : '-') + t; };
+const cmpList = () => S.catalog.filter(c => c.cmp);
+VIEWS['경쟁대학 비교'] = () => {
+  const names = schoolNames().filter(s => s !== CFG.OWN);
+  const list = cmpList();
+  const sel = list.some(c => c.code === S.cmpCode) ? S.cmpCode : (list[0] || {}).code;
+  S.cmpCode = sel;
+  const missing = [];
+  const rows = list.map(c => {
+    const r = S.model.compare(c.code, S.year, S.cmpSet);
+    if (r.own == null && r.avg == null) { missing.push(c.name); return ''; }
+    const diff = r.own != null && r.avg != null ? r.own - r.avg : null;
+    let tone = '';
+    if (diff != null && Number(c.lower) !== 2 && diff !== 0) tone = (diff > 0) === (Number(c.lower) !== 1) ? 'rk-good' : 'rk-bad';
+    const rk = r.rank ? `<span class="${r.rank <= Math.ceil(r.total / 3) ? 'rk-good' : r.rank > Math.floor(r.total * 2 / 3) ? 'rk-bad' : ''}">${r.rank}위 / ${r.total}</span>` : '—';
+    return `<tr><td>${esc(c.name)}${Number(c.lower) === 1 ? ' <span style="color:var(--ink3);font-weight:400">(낮을수록 좋음)</span>' : ''}</td><td>${esc(c.unit)}</td><td>${fmt(r.own, c.unit)}</td><td>${fmt(r.avg, c.unit)}</td><td class="${tone}">${diff == null ? '—' : dtxt(diff, c.unit)}</td><td>${rk}</td><td>${r.n || '—'}</td></tr>`;
+  }).join('');
+  const html = `<h2 class="sec">경쟁대학 비교 <small>${S.year}년 기준 · 비교대학 ${S.cmpSet.size}개교 평균</small></h2>
+    <section class="card" style="margin-bottom:16px"><div class="ctl" style="margin-bottom:8px"><label>비교 대학 선택</label><button class="btn ghost sm" data-cmp="all">전체 선택</button><button class="btn ghost sm" data-cmp="none">전체 해제</button></div>
+      <div class="chips">${names.map(n => `<button class="chip ${S.cmpSet.has(n) ? 'on' : ''}" data-school="${esc(n)}">${esc(n)}</button>`).join('')}</div>
+      <p class="leg-note">선택한 학교의 평균과 순위가 모든 화면(점선 평균 포함)에 반영됩니다. 지표별로 자료가 없는 학교는 평균에서 자동 제외되며, 표의 '비교 대학 수'에 반영됩니다.</p></section>
+    <div class="grid2">${card('c1','종합 위치 (레이더)','비교대학 평균 = 100. 바깥쪽일수록 본교가 우수 (낮을수록 좋은 지표는 뒤집어 계산)', {h:'tall'})}${card('c2','주요 비율 지표: 본교 vs 비교대학 평균','% 단위 지표', {h:'tall'})}</div>
+    <section class="card wide" style="margin-top:16px"><h3>지표별 비교표</h3><p class="sub">순위는 선택한 비교대학 + 본교 기준 (1위가 가장 우수)</p><div class="tw"><table><thead><tr><th>지표</th><th>단위</th><th>본교</th><th>비교대학 평균</th><th>차이</th><th>순위</th><th>비교 대학 수</th></tr></thead><tbody>${rows}</tbody></table></div>${missing.length ? `<p class="leg-note">※ ${S.year}년 자료가 아직 DB에 없는 지표: ${esc(missing.join(', '))}</p>` : ''}</section>
+    <h2 class="sec">지표 자세히 보기</h2>
+    <div class="ctl"><label for="cmpSel">지표</label><select id="cmpSel">${list.map(c => `<option value="${c.code}" ${c.code === sel ? 'selected' : ''}>${esc(c.name)} (${esc(c.unit)})</option>`).join('')}</select></div>
+    <div class="grid2">${card('c3','연도별 추이','본교(굵은 선) · 비교대학 평균(점선) · 선택한 학교(얇은 선)', {h:'tall'})}${card('c4', S.year + '년 학교별 순위','본교 강조', {h:'tall'})}</div>`;
+  const post = [() => {
+    // 레이더
+    const R = list.filter(c => c.cmp === 'R');
+    const idx = R.map(c => { const r = S.model.compare(c.code, S.year, S.cmpSet); if (r.own == null || r.avg == null || !r.avg || !r.own) return null; return Math.min(200, Number(c.lower) === 1 ? r.avg / r.own * 100 : r.own / r.avg * 100); });
+    if (idx.every(v => v == null)) emptyCv('c1'); else charts.c1 = new Chart(document.getElementById('c1'), {type:'radar',
+      data:{labels: R.map(c => c.name.split(/(?=\()/)), datasets:[{label:'본교', data: idx, borderColor: COLORS[0], backgroundColor: 'rgba(42,120,214,.18)', borderWidth:2.5, pointRadius:4, pointBackgroundColor: COLORS[0]}, {label:'비교대학 평균(=100)', data: R.map(() => 100), borderColor: GRAY, borderDash:[5,4], borderWidth:1.6, pointRadius:0, backgroundColor:'transparent'}]},
+      options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{usePointStyle:true, boxWidth:9}}, tooltip:{callbacks:{label: c => { if (c.datasetIndex) return ' 비교대학 평균: 100'; const k = R[c.dataIndex], r = S.model.compare(k.code, S.year, S.cmpSet); return ` 지수 ${c.parsed.r.toFixed(0)} (본교 ${fmt(r.own, k.unit)} / 평균 ${fmt(r.avg, k.unit)} ${k.unit})`; }}}},
+        scales:{r:{suggestedMin:40, suggestedMax:160, ticks:{backdropColor:'transparent', stepSize:30}, grid:{color:'#e3e6ee'}, pointLabels:{font:{size:12}}}}}});
+    // % 지표 막대
+    const P = list.filter(c => { const r = S.model.compare(c.code, S.year, S.cmpSet); return c.unit === '%' && r.own != null && r.own <= 150 && (r.avg == null || r.avg <= 150); });
+    if (!P.length) emptyCv('c2'); else charts.c2 = new Chart(document.getElementById('c2'), {type:'bar',
+      data:{labels: P.map(c => c.name.split(/(?=\()/)), datasets:[{label:'본교', data: P.map(c => S.model.compare(c.code, S.year, S.cmpSet).own), backgroundColor: COLORS[0], borderRadius:4, unit:'%'}, {label:'비교대학 평균', data: P.map(c => S.model.compare(c.code, S.year, S.cmpSet).avg), backgroundColor:'#c9ccd4', borderRadius:4, unit:'%'}]},
+      options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{usePointStyle:true, boxWidth:9}}, tooltip: tipUnit('%')}, scales:{x: yAxis('%', {beginAtZero:true}), y:{grid:{display:false}}}}});
+    // 개별 추이
+    const c = S.model.byCode[sel], unit = c ? c.unit : '';
+    const ser = [{label:'본교', fn: y => val(sel, y), color: COLORS[0]}, {label:'비교대학 평균', fn: y => avg(sel, y), color: GRAY, dash:[6,4]}];
+    const shown = [...S.cmpSet].slice(0, 14);
+    shown.forEach((n, i) => ser.push({label: n, fn: y => val(sel, y, n), color: COLORS[(i + 1) % 8] + '99', thin: true}));
+    const ys = yearsWith(ser.map(s => s.fn));
+    if (!ys) emptyCv('c3'); else charts.c3 = new Chart(document.getElementById('c3'), {type:'line',
+      data:{labels: ys.map(y => y + '년'), datasets: ser.map(s => ({label:s.label, data: ys.map(y => s.fn(y)), borderColor:s.color, backgroundColor:s.color, borderWidth: s.thin ? 1 : (s.dash ? 2 : 3), borderDash: s.dash || [], pointRadius: s.thin ? 0 : 4.5, pointHoverRadius:6, tension:0, spanGaps:false, unit}))},
+      options:{responsive:true, maintainAspectRatio:false, interaction:{mode:'nearest', intersect:false}, plugins:{legend:{display:true, position:'bottom', labels:{usePointStyle:true, boxWidth:8, filter: it => it.datasetIndex < 2}}, tooltip: tipUnit(unit)}, scales:{x:{grid:{display:false}}, y: yAxis(unit)}}});
+    // 순위
+    const all = schoolNames().map(n => ({n, v: val(sel, S.year, n)})).filter(x => x.v != null).sort((a, b) => Number(c && c.lower) === 1 ? a.v - b.v : b.v - a.v);
+    if (!all.length) emptyCv('c4'); else charts.c4 = new Chart(document.getElementById('c4'), {type:'bar',
+      data:{labels: all.map(x => x.n), datasets:[{label: c.name, data: all.map(x => x.v), backgroundColor: all.map(x => x.n === CFG.OWN ? COLORS[0] : (S.cmpSet.has(x.n) ? '#b9bdc7' : '#e2e4ea')), borderRadius:4, unit}]},
+      options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip: tipUnit(unit)}, scales:{x: yAxis(unit, {beginAtZero:true}), y:{grid:{display:false}}}}});
+  }];
+  return {html, post};
+};
+
+/* ═════════════════ 데이터 관리 (IR센터) ═════════════════ */
+const KEY_CODES = ['new_rate','stu_rate','emp_rate','keep1','drop_rate','fac_sec_stu','spf_stu','res_dom','for_n','inc_tuition','exp_pay','sch_pp'];
+let U = null;   // 업로드 작업 상태
+function mergeDb(base, parsed, sel) {   // sel: Map(sheet -> Set(years))
+  const columns = base.columns.map(c => c.slice()), idOf = {}, sheetOf = {};
+  let maxId = 0;
+  columns.forEach(c => { idOf[c[1] + '|' + c[2]] = c[0]; sheetOf[c[0]] = c[1]; maxId = Math.max(maxId, c[0]); });
+  const ids = {};
+  sel.forEach((ys, name) => {
+    const s = parsed.sheets.find(x => x.name === name);
+    ids[name] = s.cols.map(p => { const k = name + '|' + p; if (!(k in idOf)) { idOf[k] = ++maxId; columns.push([maxId, name, p]); sheetOf[maxId] = name; } return idOf[k]; });
+  });
+  const facts = base.facts.filter(f => { const ys = sel.get(sheetOf[f[3]]); return !(ys && ys.has(f[0])); });
+  sel.forEach((ys, name) => {
+    const s = parsed.sheets.find(x => x.name === name);
+    s.rows.forEach(r => { if (!ys.has(r[0])) return; r[3].forEach((v, i) => { if (v != null) facts.push([r[0], r[1], r[2], ids[name][i], v]); }); });
+  });
+  return {columns, facts, schools: parsed.schools.length ? parsed.schools : base.schools};
+}
+function diffSheet(s) {   // DB 대비 신규/변경/동일 건수 (연도별)
+  const sheetCols = {}; S.base.columns.forEach(c => { if (c[1] === s.name) sheetCols[c[2]] = c[0]; });
+  const cur = {}; S.base.facts.forEach(f => { cur[f[3] + '|' + f[0] + '|' + f[1] + '|' + f[2]] = f[4]; });
+  const per = {};
+  s.rows.forEach(r => {
+    const o = per[r[0]] || (per[r[0]] = {n: 0, ch: 0, same: 0});
+    r[3].forEach((v, i) => {
+      if (v == null) return;
+      const id = sheetCols[s.cols[i]];
+      const old = id == null ? undefined : cur[id + '|' + r[0] + '|' + r[1] + '|' + r[2]];
+      if (old === undefined) o.n++; else if (Math.abs(old - v) > 1e-9 * Math.max(1, Math.abs(v))) o.ch++; else o.same++;
+    });
+  });
+  return per;
+}
+function startAdmin() {
+  const loggedAdmin = S.auth.admin;
+  const live = !!CFG.API_URL;
+  let h = '';
+  if (live && !loggedAdmin) {
+    h += `<h2 class="sec">IR센터 로그인</h2><section class="card"><p style="margin-bottom:12px">공시자료 업로드는 <b>IR센터 허용 계정</b>만 가능합니다. 구글 계정으로 로그인해 주세요.</p><div id="gbtn"></div><p class="leg-note" id="authMsg">${S.auth.email ? esc(S.auth.email) + ' 계정은 업로드 권한이 없습니다.' : (CFG.CLIENT_ID ? '' : '※ 관리자 설정(CLIENT_ID)이 아직 입력되지 않았습니다.')}</p></section>`;
+    return {html: h, post: [renderGsiButton]};
+  }
+  const must = live ? '' : `<div class="banner warn">DB(API_URL)가 설정되지 않아 <b>저장 없이 이 화면에서만 미리보기</b>할 수 있습니다. 설치가이드의 1~5단계를 완료하면 저장 기능이 켜집니다.</div>`;
+  h += must + `<h2 class="sec">공시자료 엑셀 업로드 <small>${live ? esc(S.auth.email) + ' 로그인됨' : '미리보기 모드'}</small></h2>
+    <div class="grid2"><section class="card"><h3>1. 대학알리미 엑셀 올리기</h3><p class="sub">대학알리미에서 받은 원본 엑셀을 <b>그대로</b> 올리세요 (시트 이름·표 형식 변경 불필요). 여러 연도가 들어 있어도 됩니다.</p>
+      <div class="drop" id="drop"><b>엑셀 파일을 끌어다 놓거나 클릭해서 선택</b><br><span style="font-size:13px">.xlsx 파일</span><input type="file" id="file" accept=".xlsx,.xls" hidden></div></section>
+      <section class="card"><h3>새 연도(예: 2026년) 자료 추가하는 방법</h3><p class="sub">코드 수정이 필요 없습니다.</p>
+      <ol class="steps"><li>엑셀에 새 연도 행을 추가한 파일(또는 새로 받은 파일)을 올립니다.</li><li>아래 결과표에서 <b>'신규'</b> 건수와 검토 필요 항목을 확인합니다. 신규/변경이 있는 연도만 자동 선택됩니다.</li><li>[DB에 저장]을 누르면 끝입니다. 상단 '기준 연도' 목록에 새 연도가 자동으로 생깁니다.</li></ol></section></div>
+    <div id="upRes"></div>`;
+  h += `<h2 class="sec">직접 입력·수정 <small>엑셀 없이 값 1개를 추가하거나 고칠 때</small></h2><section class="card" id="manual"></section>`;
+  h += `<h2 class="sec">DB 현황</h2><div class="grid2"><section class="card"><h3>업로드 이력</h3><div class="tw" id="logTbl"></div></section><section class="card"><h3>백업·점검</h3><p class="sub">현재 DB 전체를 엑셀로 내려받거나, 지표와 DB 열이 제대로 연결되는지 점검합니다.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" id="bkp">DB 전체를 엑셀로 내려받기</button><button class="btn ghost" id="chk">지표 연결 점검</button></div><div id="chkRes" style="margin-top:10px"></div></section></div>`;
+  return {html: h, post: [bindAdmin]};
+}
+function bindAdmin() {
+  const drop = $('#drop'), file = $('#file');
+  drop.onclick = () => file.click();
+  file.onchange = () => file.files[0] && handleFile(file.files[0]);
+  ['dragover','dragenter'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave','drop'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', ev => { const f = ev.dataTransfer.files[0]; if (f) handleFile(f); });
+  renderManual(); renderLog();
+  $('#bkp').onclick = exportDb;
+  $('#chk').onclick = () => {
+    const p = S.model.problems();
+    $('#chkRes').innerHTML = p.length ? `<div class="banner warn" style="display:block"><b>DB에서 찾지 못한 지표 ${p.length}개</b><br>${p.map(x => `<div class="msg">· ${esc(x.name)}: ${esc(x.issues.join(', '))}</div>`).join('')}<div class="msg" style="margin-top:6px">해당 시트가 아직 업로드되지 않았거나 대학알리미 헤더 문구가 바뀐 경우입니다. 후자는 구글 시트 catalog 탭의 patterns를 수정하세요.</div></div>` : `<div class="banner info">모든 지표가 DB 열과 정상 연결되어 있습니다.</div>`;
+  };
+  if (U) renderUpload();
+}
+function renderLog() {
+  const rows = (S.log || []).slice(0, 15).map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[3])}</td><td>${esc(r[4])}</td><td>${r[6]}</td><td>${r[7]}</td></tr>`).join('');
+  $('#logTbl').innerHTML = rows ? `<table><thead><tr><th>일시</th><th>계정</th><th>시트</th><th>연도</th><th>추가</th><th>교체</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="sub">아직 이력이 없습니다.</p>';
+}
+function handleFile(f) {
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      const wb = XLSX.read(new Uint8Array(rd.result), {type: 'array'});
+      U = {file: f.name, wb, dup: {}, sel: null, years: null};
+      reparse(); renderUpload();
+    } catch (e) { $('#upRes').innerHTML = `<div class="banner err">엑셀을 읽지 못했습니다: ${esc(e.message)}</div>`; }
+  };
+  rd.readAsArrayBuffer(f);
+}
+function reparse() {
+  U.parsed = CORE.parseWorkbook(XLSX, U.wb, S.catalog, U.dup);
+  U.diff = {};
+  U.parsed.sheets.forEach(s => { U.diff[s.name] = s.ok ? diffSheet(s) : {}; });
+  if (!U.sel) {   // 기본 선택: 오류 없는 시트 중 신규/변경이 있는 시트·연도
+    U.sel = new Map();
+    U.parsed.sheets.forEach(s => {
+      if (!s.ok) return;
+      const ys = new Set(Object.entries(U.diff[s.name]).filter(([y, o]) => o.n + o.ch > 0).map(([y]) => Number(y)));
+      if (ys.size) U.sel.set(s.name, ys);
+    });
+  } else {   // 재분석 시 선택 정리
+    [...U.sel.keys()].forEach(n => { const s = U.parsed.sheets.find(x => x.name === n); if (!s || !s.ok) U.sel.delete(n); });
+  }
+}
+function renderUpload() {
+  const P = U.parsed;
+  const rows = P.sheets.map(s => {
+    const on = U.sel.has(s.name);
+    const yrs = s.years.map(y => {
+      const o = (U.diff[s.name] || {})[y] || {n: 0, ch: 0, same: 0};
+      const checked = on && U.sel.get(s.name).has(y);
+      const tag = s.ok ? (o.n + o.ch === 0 ? '<span style="color:var(--ink3)">동일</span>' : `${o.n ? `<b style="color:var(--s1)">신규 ${o.n}</b>` : ''}${o.n && o.ch ? ' · ' : ''}${o.ch ? `<b style="color:var(--s2)">변경 ${o.ch}</b>` : ''}`) : '';
+      return `<label style="display:inline-flex;gap:5px;align-items:center;margin:2px 10px 2px 0;white-space:nowrap"><input type="checkbox" data-y="${esc(s.name)}|${y}" ${checked ? 'checked' : ''} ${s.ok ? '' : 'disabled'}>${y}년 ${tag}</label>`;
+    }).join('');
+    const msgs = s.errors.map(m => `<div class="msg e">✕ ${esc(m)}</div>`).join('') + s.warnings.map(m => `<div class="msg w">⚠ ${esc(m)}</div>`).join('');
+    const dupSel = (s.dupInfo && s.dupInfo.length) ? `<div class="msg">중복 행 처리: <select data-dup="${esc(s.name)}"><option value="">선택하세요</option><option value="first" ${U.dup[s.name] === 'first' ? 'selected' : ''}>먼저 나온 행 사용</option><option value="last" ${U.dup[s.name] === 'last' ? 'selected' : ''}>나중에 나온 행 사용</option></select></div>` : '';
+    const st = !s.ok ? '<span class="st bad">저장 불가</span>' : s.warnings.length ? '<span class="st warn">확인 필요</span>' : '<span class="st ok">정상</span>';
+    return `<tr><td style="white-space:normal;max-width:240px"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-sheet="${esc(s.name)}" ${on ? 'checked' : ''} ${s.ok ? '' : 'disabled'}>${esc(s.name)}</label></td><td>${st}</td><td>${s.rows.length}행 · ${s.nFacts.toLocaleString()}건</td><td style="text-align:left;white-space:normal">${yrs}${msgs}${dupSel}</td></tr>`;
+  }).join('');
+  // 검토 필요: 급변 값
+  const rev = reviewList();
+  const nSel = U.sel.size, nFacts = [...U.sel.entries()].reduce((a, [n, ys]) => a + U.parsed.sheets.find(s => s.name === n).rows.filter(r => ys.has(r[0])).reduce((b, r) => b + r[3].filter(v => v != null).length, 0), 0);
+  $('#upRes').innerHTML = `<h2 class="sec">2. 분석 결과 <small>${esc(U.file)} · 학교 ${P.schools.length}개교 · 시트 ${P.sheets.length}개</small></h2>
+    <section class="card"><div class="tw"><table><thead><tr><th>시트</th><th>상태</th><th>규모</th><th style="text-align:left">연도별 변경 (체크한 연도만 저장 · 해당 시트·연도의 기존 값은 교체됩니다)</th></tr></thead><tbody>${rows}</tbody></table></div></section>
+    ${rev}
+    <h2 class="sec">3. 저장</h2><section class="card"><p style="margin-bottom:12px"><b>${nSel}개 시트 · ${nFacts.toLocaleString()}건</b>을 저장합니다. 오류가 있는 시트는 저장되지 않으며, 나머지 시트는 정상 저장됩니다.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><button class="btn" id="saveBtn" ${nSel && CFG.API_URL ? '' : 'disabled'}>DB에 저장</button><button class="btn ghost" id="prevBtn" ${nSel ? '' : 'disabled'}>저장하지 않고 이 화면에서 미리보기</button><span id="saveMsg" class="msg"></span></div>
+      ${CFG.API_URL ? '' : '<p class="leg-note">※ DB가 연결되지 않아 저장 버튼은 비활성입니다.</p>'}</section>`;
+  $('#upRes').querySelectorAll('input[data-sheet]').forEach(el => el.onchange = () => {
+    const n = el.dataset.sheet;
+    if (el.checked) { const s = P.sheets.find(x => x.name === n); U.sel.set(n, new Set(s.years)); } else U.sel.delete(n);
+    renderUpload();
+  });
+  $('#upRes').querySelectorAll('input[data-y]').forEach(el => el.onchange = () => {
+    const [n, y] = el.dataset.y.split('|'); const set = U.sel.get(n) || new Set();
+    el.checked ? set.add(Number(y)) : set.delete(Number(y));
+    set.size ? U.sel.set(n, set) : U.sel.delete(n);
+    renderUpload();
+  });
+  $('#upRes').querySelectorAll('select[data-dup]').forEach(el => el.onchange = () => { U.dup[el.dataset.dup] = el.value; U.sel = null; reparse(); renderUpload(); });
+  $('#saveBtn').onclick = saveUpload;
+  $('#prevBtn').onclick = () => { S.preview = true; setDb(mergeDb(S.base, U.parsed, U.sel)); S.tab = '종합'; draw(); };
+}
+function reviewList() {
+  if (!U.sel.size) return '';
+  const merged = mergeDb(S.base, U.parsed, U.sel), M2 = new CORE.Model(merged, S.catalog, CFG.OWN), M1 = S.model;
+  const out = [];
+  const ys = new Set(); U.sel.forEach(set => set.forEach(y => ys.add(y)));
+  KEY_CODES.forEach(c => {
+    const i = M2.byCode[c]; if (!i) return;
+    [...ys].sort().forEach(y => {
+      const nv = M2.get(c, y), ov = S.base.facts.length ? (S.preview ? null : M1.get(c, y)) : null;
+      if (ov != null && nv != null && Math.abs(nv - ov) > 1e-9 && Math.abs(nv - ov) / Math.max(Math.abs(ov), 1e-9) > 0.1) out.push(`<tr><td>${esc(i.name)}</td><td>${y}년</td><td>기존 값 ${fmt(ov, i.unit)} → 새 값 <b>${fmt(nv, i.unit)}</b> ${esc(i.unit)}</td><td style="text-align:left">기존 값이 10% 넘게 바뀝니다</td></tr>`);
+      const pv = M2.get(c, y - 1);
+      if (nv != null && pv != null && pv !== 0 && Math.abs(nv - pv) / Math.abs(pv) > 0.4) out.push(`<tr><td>${esc(i.name)}</td><td>${y}년</td><td>${y - 1}년 ${fmt(pv, i.unit)} → ${y}년 <b>${fmt(nv, i.unit)}</b> ${esc(i.unit)}</td><td style="text-align:left">전년 대비 40% 넘게 변동</td></tr>`);
+    });
+  });
+  if (!out.length) return `<section class="card" style="margin-top:14px"><h3>검토 필요 항목</h3><p class="sub">본교 핵심 지표 ${KEY_CODES.length}개에서 급변 값이 발견되지 않았습니다.</p></section>`;
+  return `<section class="card" style="margin-top:14px"><h3>검토 필요 항목 (본교 핵심 지표)</h3><p class="sub">입력 오류(자릿수·열 밀림)일 수 있으니 원본과 대조한 뒤 저장하세요. 실제 변동이면 그대로 저장해도 됩니다.</p><div class="tw"><table><thead><tr><th>지표</th><th>연도</th><th style="text-align:left">값</th><th style="text-align:left">사유</th></tr></thead><tbody>${out.join('')}</tbody></table></div></section>`;
+}
+async function saveUpload() {
+  const msg = $('#saveMsg'), btn = $('#saveBtn');
+  if (!tokenValid()) { msg.className = 'msg e'; msg.textContent = '로그인이 만료되었습니다. 다시 로그인해 주세요.'; S.auth.admin = false; draw(); return; }
+  btn.disabled = true; msg.className = 'msg'; msg.textContent = '저장 중… (창을 닫지 마세요)';
+  try {
+    if (U.parsed.schools.length) { const r = await api({action: 'saveSchools', schools: U.parsed.schools}); if (!r.ok) throw new Error(r.error); }
+    const items = [...U.sel.entries()].map(([name, ys]) => {
+      const s = U.parsed.sheets.find(x => x.name === name);
+      return {sheet: name, years: [...ys].sort(), cols: s.cols, rows: s.rows.filter(r => ys.has(r[0]))};
+    });
+    let batch = [], size = 0, done = 0;
+    const flush = async () => {
+      if (!batch.length) return;
+      const r = await api({action: 'saveBatch', file: U.file, sheets: batch});
+      if (!r.ok) throw new Error(r.error);
+      done += batch.length; msg.textContent = `저장 중… ${done}/${items.length}개 시트`; batch = []; size = 0;
+    };
+    for (const it of items) { const sz = JSON.stringify(it).length; if (size + sz > 1500000) await flush(); batch.push(it); size += sz; }
+    await flush();
+    msg.className = 'msg'; msg.textContent = '저장 완료. 최신 데이터를 다시 불러오는 중…';
+    await loadData(true);
+    U = null; S.preview = false; S.tab = '종합'; draw();
+    toast('저장이 완료되었습니다. 대시보드가 최신 데이터로 갱신되었습니다.');
+  } catch (e) { msg.className = 'msg e'; msg.textContent = '저장 실패: ' + e.message + ' (이미 저장된 시트는 유지됩니다. 같은 파일을 다시 올려 이어서 저장하세요.)'; btn.disabled = false; }
+}
+function renderManual() {
+  const sheets = [...new Set(S.base.columns.map(c => c[1]))];
+  if (!sheets.length) { $('#manual').innerHTML = '<p class="sub">DB에 데이터가 올라온 뒤 사용할 수 있습니다. 먼저 엑셀을 업로드하세요.</p>'; return; }
+  const yearsHint = allYears();
+  $('#manual').innerHTML = `<div class="fm"><div><label>시트</label><select id="mSheet">${sheets.map(s => `<option>${esc(s)}</option>`).join('')}</select></div>
+    <div><label>항목(열)</label><select id="mCol"></select></div>
+    <div><label>연도</label><input id="mYear" type="number" value="${(yearsHint[yearsHint.length - 1] || new Date().getFullYear()) + 0}"></div>
+    <div><label>학교</label><select id="mSchool">${schoolNames().map(n => `<option ${n === CFG.OWN ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></div>
+    <div><label>구분 (학기·전형 등, 없으면 비움)</label><input id="mDim" placeholder="예: 상반기, 1학기"></div>
+    <div><label>값</label><input id="mVal" type="number" step="any" placeholder="숫자"></div>
+    <div><button class="btn" id="mSave" ${CFG.API_URL ? '' : 'disabled'}>저장</button></div></div>
+    <p class="leg-note" id="mCur"></p><p class="leg-note">값을 비우고 저장하면 해당 값이 삭제됩니다. 재학생 충원율 등은 구분에 '상반기'/'하반기'를 입력하세요.</p>`;
+  const fillCols = () => { $('#mCol').innerHTML = S.base.columns.filter(c => c[1] === $('#mSheet').value).map(c => `<option value="${esc(c[2])}">${esc(c[2])}</option>`).join(''); showCur(); };
+  const showCur = () => {
+    const col = S.base.columns.find(c => c[1] === $('#mSheet').value && c[2] === $('#mCol').value);
+    if (!col) return;
+    const f = S.base.facts.find(f => f[3] === col[0] && f[0] === Number($('#mYear').value) && f[1] === $('#mDim').value.trim() && f[2] === $('#mSchool').value);
+    $('#mCur').textContent = f ? `현재 DB 값: ${f[4]}` : '현재 DB에 값 없음';
+  };
+  $('#mSheet').onchange = fillCols; ['#mCol','#mYear','#mSchool','#mDim'].forEach(s => $(s).oninput = showCur);
+  fillCols();
+  $('#mSave').onclick = async () => {
+    if (!tokenValid()) { toast('로그인이 만료되었습니다. 다시 로그인해 주세요.'); S.auth.admin = false; return draw(); }
+    const v = $('#mVal').value;
+    if (!confirm(`${$('#mYear').value}년 ${$('#mSchool').value}\n${$('#mSheet').value} > ${$('#mCol').value}\n값: ${v === '' ? '(삭제)' : v}\n\n저장할까요?`)) return;
+    const r = await api({action: 'setCell', sheet: $('#mSheet').value, path: $('#mCol').value, year: Number($('#mYear').value), dim: $('#mDim').value.trim(), school: $('#mSchool').value, value: v === '' ? null : Number(v)});
+    if (!r.ok) return toast('저장 실패: ' + r.error);
+    await loadData(true); toast('저장되었습니다.'); draw();
+  };
+}
+function exportDb() {
+  const colOf = {}; S.base.columns.forEach(c => colOf[c[0]] = c);
+  const rows = [['기준연도','구분','학교','시트','항목','값']].concat(S.base.facts.map(f => [f[0], f[1], f[2], (colOf[f[3]] || [])[1], (colOf[f[3]] || [])[2], f[4]]));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'facts');
+  XLSX.writeFile(wb, '공시DB_백업_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+}
+
+/* ═════════════════ 인증 (구글 로그인) ═════════════════ */
+function jwt(t) { try { return JSON.parse(decodeURIComponent(escape(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))))); } catch (e) { return null; } }
+function tokenValid() { const p = S.auth.token && jwt(S.auth.token); return !!(p && p.exp * 1000 > Date.now() + 30000); }
+async function api(body) {
+  const r = await fetch(CFG.API_URL, {method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify(Object.assign({token: S.auth.token}, body))});
+  return r.json();
+}
+function initGsi() {
+  if (!CFG.CLIENT_ID || !window.google || !google.accounts) return;
+  google.accounts.id.initialize({client_id: CFG.CLIENT_ID, callback: onCred, auto_select: false});
+  renderGsiButton();
+}
+function renderGsiButton() { const el = document.getElementById('gbtn'); if (el && window.google && google.accounts && CFG.CLIENT_ID) google.accounts.id.renderButton(el, {theme: 'outline', size: 'large', locale: 'ko'}); }
+async function onCred(resp) {
+  S.auth.token = resp.credential;
+  try { sessionStorage.setItem('idtok', resp.credential); } catch (e) {}
+  await checkAdmin();
+}
+async function checkAdmin() {
+  try {
+    const r = await api({action: 'whoami'});
+    S.auth.email = r.email || ''; S.auth.admin = !!(r.ok && r.admin);
+    if (!r.ok) { S.auth.token = null; toast(r.error || '로그인 확인 실패'); }
+  } catch (e) { toast('서버에 연결하지 못했습니다.'); }
+  renderTabs(); if (S.tab === '데이터 관리') draw();
+}
+
+/* ═════════════════ 메인 렌더링 ═════════════════ */
+const TABS = ['종합','학생','교원','연구','재정','경쟁대학 비교','데이터 관리'];
+function renderTabs() {
+  $('#tabs').innerHTML = TABS.map(t => `<button class="tab ${t === S.tab ? 'on' : ''}" data-tab="${t}" ${t === '데이터 관리' && !(S.auth.admin || !CFG.API_URL) ? 'hidden' : ''}>${t}</button>`).join('');
+}
+function renderYear() {
+  const ys = allYears().slice().reverse();
+  $('#yearSel').innerHTML = ys.map(y => `<option value="${y}" ${y === S.year ? 'selected' : ''}>${y}년</option>`).join('') || '<option>—</option>';
+}
+function toast(t) { const d = document.createElement('div'); d.className = 'banner info'; d.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:24px;z-index:50;box-shadow:0 4px 16px rgba(0,0,0,.2);max-width:92vw'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 4500); }
+function emptyState() {
+  return `<section class="card" style="max-width:760px;margin:30px auto;text-align:center;padding:36px 28px"><h3 style="font-size:20px">표시할 공시 데이터가 없습니다</h3>
+   <p style="margin:12px 0 18px;color:var(--ink2)">${S.loadErr ? '<span style="color:var(--bad)">' + esc(S.loadErr) + '</span><br>' : ''}${CFG.API_URL ? 'DB가 비어 있습니다. IR센터 계정으로 로그인해 대학알리미 엑셀을 업로드하세요.' : 'DB(API_URL)가 아직 연결되지 않았습니다. 엑셀 파일로 먼저 화면을 확인할 수 있습니다.'}</p>
+   <button class="btn" id="goAdmin">${CFG.API_URL ? 'IR센터 로그인 / 업로드' : '엑셀로 미리보기'}</button></section>`;
+}
+function draw() {
+  killCharts(); renderTabs(); renderYear();
+  const v = $('#view');
+  const hasData = S.model && allYears().length;
+  let banner = '';
+  if (S.preview) banner = `<div class="banner warn"><b>미리보기 중입니다.</b> 아직 DB에 저장되지 않은 엑셀 내용이 표시되고 있습니다.<button class="btn ghost sm" id="endPrev">원래 화면으로</button></div>`;
+  if (S.loading) { v.innerHTML = '<div class="banner info">데이터를 불러오는 중입니다…</div>'; return; }
+  if (S.tab === '데이터 관리') {
+    const r = startAdmin(); v.innerHTML = banner + r.html; r.post.forEach(f => f()); return;
+  }
+  if (!hasData) { v.innerHTML = banner + emptyState(); return; }
+  S._kc = [];
+  const r = VIEWS[S.tab]();
+  if (S._kc.length && S._kc.every(c => val(c) == null)) {   // 선택 연도에 이 탭 자료가 전혀 없을 때 안내 (값을 대체하지는 않음)
+    const ys = allYears().filter(y => S._kc.some(c => val(c, y) != null));
+    if (ys.length) banner += `<div class="banner info"><b>${S.year}년 ${S.tab} 자료가 아직 DB에 없습니다.</b> 이 탭의 가장 최근 자료는 ${ys[ys.length - 1]}년입니다.<button class="btn ghost sm" data-year="${ys[ys.length - 1]}">${ys[ys.length - 1]}년 보기</button></div>`;
+  }
+  v.innerHTML = banner + r.html;
+  r.post.forEach(f => f());
+}
+async function loadData(quiet) {
+  if (!CFG.API_URL) { S.loading = false; S.catalog = DEFAULT_CATALOG; setDb({columns: [], facts: [], schools: []}); S.base = S.db; return; }
+  try {
+    const r = await fetch(CFG.API_URL + '?action=data');
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || '응답 오류');
+    S.catalog = (d.catalog && d.catalog.length) ? d.catalog : DEFAULT_CATALOG;
+    S.catalog.forEach(c => { c.lower = Number(c.lower) || 0; });
+    S.base = {columns: d.columns, facts: d.facts, schools: d.schools};
+    S.log = d.log || []; S.updated = d.updated || ''; S.loadErr = '';
+    S.preview = false;
+    setDb(S.base);
+    $('#upd').textContent = S.updated ? '데이터 갱신: ' + S.updated : '';
+  } catch (e) {
+    S.loadErr = '데이터를 불러오지 못했습니다: ' + e.message;
+    S.catalog = DEFAULT_CATALOG; S.base = {columns: [], facts: [], schools: []}; setDb(S.base);
+  }
+  S.loading = false;
+}
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-tab],[data-year],[data-sub],[data-school],[data-cmp],#goAdmin,#endPrev,#loginLink');
+  if (!t) return;
+  if (t.id === 'loginLink') { e.preventDefault(); S.tab = '데이터 관리'; draw(); return; }
+  if (t.id === 'goAdmin') { S.tab = '데이터 관리'; draw(); return; }
+  if (t.id === 'endPrev') { S.preview = false; setDb(S.base); draw(); return; }
+  if (t.dataset.year) { S.year = Number(t.dataset.year); draw(); }
+  else if (t.dataset.tab) { S.tab = t.dataset.tab; draw(); window.scrollTo(0, 0); }
+  else if (t.dataset.sub) { S.sub = t.dataset.sub; draw(); }
+  else if (t.dataset.school) { const n = t.dataset.school; S.cmpSet.has(n) ? S.cmpSet.delete(n) : S.cmpSet.add(n); S.model._memo = {}; draw(); }
+  else if (t.dataset.cmp) { const names = schoolNames().filter(s => s !== CFG.OWN); S.cmpSet = new Set(t.dataset.cmp === 'all' ? names : []); draw(); }
+});
+document.addEventListener('change', e => {
+  if (e.target.id === 'yearSel') { S.year = Number(e.target.value); draw(); }
+  if (e.target.id === 'cmpSel') { S.cmpCode = e.target.value; draw(); }
+});
+(async function init() {
+  draw();
+  await loadData();
+  try { const t = sessionStorage.getItem('idtok'); if (t && CFG.API_URL) { S.auth.token = t; if (tokenValid()) await checkAdmin(); else S.auth.token = null; } } catch (e) {}
+  draw();
+  initGsi();
+})();
+</script>
+</body>
+</html>
